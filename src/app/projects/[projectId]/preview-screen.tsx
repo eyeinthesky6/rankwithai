@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useCollection, useMemoFirebase, useFirestore } from "@/firebase";
-import { collection, query, orderBy, doc, updateDoc, serverTimestamp, writeBatch, arrayUnion } from "firebase/firestore";
+import { collection, query, orderBy, doc, arrayUnion } from "firebase/firestore";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import { autoFixPage } from "@/app/lib/auto-fixer";
 import { refreshContent } from "@/ai/flows/refresh-content-flow";
 import { checkAndLogRepairBudget } from "@/app/lib/generation-service";
 import { useToast } from "@/hooks/use-toast";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function PreviewScreen({ project }: { project: any }) {
   const [filter, setFilter] = useState('');
@@ -45,7 +46,7 @@ export default function PreviewScreen({ project }: { project: any }) {
 
   const stalePages = pages?.filter(p => p.isStale) || [];
 
-  const handleRunQA = async (page: any) => {
+  const handleRunQA = (page: any) => {
     const result = validatePageContent(page);
     const pageRef = doc(db, 'projects', project.id, 'pages', page.id);
     
@@ -56,13 +57,13 @@ export default function PreviewScreen({ project }: { project: any }) {
       qaCheckedAt: new Date().toISOString()
     };
 
-    await updateDoc(pageRef, updates);
+    updateDocumentNonBlocking(pageRef, updates);
 
     toast({ title: "QA Audit Complete", description: `Score: ${result.score}% | Issues: ${result.issues.length}` });
     if (activePage?.id === page.id) setActivePage({ ...page, ...updates });
   };
 
-  const handleAutoFix = async (page: any) => {
+  const handleAutoFix = (page: any) => {
     setFixing(page.id);
     try {
       const { fixedPage, summary } = autoFixPage(page, project.brandMemory);
@@ -77,13 +78,13 @@ export default function PreviewScreen({ project }: { project: any }) {
         qaIssues: finalQuality.issues,
         contentScore: finalQuality.score,
         lastFixSummary: summary,
-        updatedAt: serverTimestamp()
+        updatedAt: new Date().toISOString()
       };
 
-      await updateDoc(pageRef, finalPage);
+      updateDocumentNonBlocking(pageRef, finalPage);
       
       // Log deterministic fix activity
-      await updateDoc(projectRef, {
+      updateDocumentNonBlocking(projectRef, {
         refreshLogs: arrayUnion({
           id: Math.random().toString(36).substring(7),
           timestamp: new Date().toISOString(),
@@ -102,7 +103,7 @@ export default function PreviewScreen({ project }: { project: any }) {
     }
   };
 
-  const handleApplyBrandUpdates = async (page: any) => {
+  const handleApplyBrandUpdates = (page: any) => {
     setFixing(page.id);
     try {
       const { fixedPage, summary } = autoFixPage(page, project.brandMemory);
@@ -110,16 +111,16 @@ export default function PreviewScreen({ project }: { project: any }) {
       const projectRef = doc(db, 'projects', project.id);
       const newHash = JSON.stringify(project.brandMemory).split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0).toString();
 
-      await updateDoc(pageRef, {
+      updateDocumentNonBlocking(pageRef, {
         ...fixedPage,
         brandMemoryHash: newHash,
         isStale: false,
         lastFixSummary: `Strategic Sync: ${summary}`,
-        updatedAt: serverTimestamp()
+        updatedAt: new Date().toISOString()
       });
 
       // Log sync activity
-      await updateDoc(projectRef, {
+      updateDocumentNonBlocking(projectRef, {
         refreshLogs: arrayUnion({
           id: Math.random().toString(36).substring(7),
           timestamp: new Date().toISOString(),
@@ -168,7 +169,7 @@ export default function PreviewScreen({ project }: { project: any }) {
       const projectRef = doc(db, 'projects', project.id);
       
       const updates: any = {
-        updatedAt: serverTimestamp(),
+        updatedAt: new Date().toISOString(),
         version: (activePage.version || 1) + 1,
         lastFixSummary: `AI Repair: ${repairAction.type}`
       };
@@ -183,10 +184,10 @@ export default function PreviewScreen({ project }: { project: any }) {
         updates.sections = newSections;
       }
 
-      await updateDoc(pageRef, updates);
+      updateDocumentNonBlocking(pageRef, updates);
 
       // Log AI repair activity
-      await updateDoc(projectRef, {
+      updateDocumentNonBlocking(projectRef, {
         refreshLogs: arrayUnion({
           id: Math.random().toString(36).substring(7),
           timestamp: new Date().toISOString(),
