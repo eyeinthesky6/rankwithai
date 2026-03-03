@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -19,20 +20,27 @@ import {
   ShieldCheck,
   CheckCircle2,
   ChevronRight,
-  Info
+  Info,
+  Download,
+  FileArchive
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { detectHost } from "@/ai/flows/detect-host-flow";
 import CustomDomainManager from "./custom-domain-manager";
+import { exportProjectToZip } from "@/app/lib/export-service";
+import { useFirestore } from "@/firebase";
 
 type HostType = 'Cloudflare' | 'Vercel' | 'Netlify' | 'WordPress' | 'Nginx' | 'Apache' | 'Unknown';
 
 export default function PublishHelper({ project }: { project: any }) {
   const [urlInput, setUrlInput] = useState(project.website || '');
   const [detecting, setDetecting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [detectedHost, setDetectedHost] = useState<HostType | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  
   const { toast } = useToast();
+  const db = useFirestore();
 
   const handleDetect = async () => {
     if (!urlInput.startsWith('http')) {
@@ -49,6 +57,18 @@ export default function PublishHelper({ project }: { project: any }) {
       setDetectedHost('Unknown');
     } finally {
       setDetecting(false);
+    }
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportProjectToZip(db, project);
+      toast({ title: "Export Complete", description: "Static HTML ZIP has been generated." });
+    } catch (e: any) {
+      toast({ title: "Export Failed", description: e.message, variant: "destructive" });
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -112,7 +132,7 @@ add_action('init', function() {
             placeholder="https://yourwebsite.com" 
             className="bg-background rounded-xl border-none focus-visible:ring-1 h-12"
           />
-          <Button onClick={handleDetect} disabled={detecting} className="rounded-xl font-bold px-6 h-12 shadow-lg shadow-primary/10">
+          <Button onClick={handleDetect} disabled={detecting} className="rounded-xl font-bold px-6 h-12 shadow-lg shadow-primary/20">
             {detecting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Globe className="h-4 w-4 mr-2" />}
             Detect Host
           </Button>
@@ -137,12 +157,15 @@ add_action('init', function() {
       </section>
 
       <Tabs defaultValue="subdomain" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-[2rem] mb-8 h-14">
+        <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 rounded-[2rem] mb-8 h-14">
           <TabsTrigger value="subdomain" className="rounded-2xl font-bold py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-lg">
-            <Globe className="h-4 w-4 mr-2" /> Subdomain (CNAME)
+            <Globe className="h-4 w-4 mr-2" /> Subdomain
           </TabsTrigger>
           <TabsTrigger value="proxy" className="rounded-2xl font-bold py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-lg">
-            <LayoutGrid className="h-4 w-4 mr-2" /> Path Mount (/feeds)
+            <LayoutGrid className="h-4 w-4 mr-2" /> Path Mount
+          </TabsTrigger>
+          <TabsTrigger value="export" className="rounded-2xl font-bold py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-lg">
+            <FileArchive className="h-4 w-4 mr-2" /> Static ZIP
           </TabsTrigger>
         </TabsList>
 
@@ -191,16 +214,6 @@ add_action('init', function() {
                   </div>
                 </CardContent>
               </Card>
-
-              <div className="p-8 bg-primary/5 border border-primary/10 rounded-[2.5rem] flex gap-4 shadow-inner">
-                <Info className="h-6 w-6 text-primary shrink-0" />
-                <div className="space-y-1">
-                  <p className="text-sm font-black text-primary">Path-Based SEO Strategy</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Mounting under a path (e.g. <code>/feeds</code>) allows your feed to share domain authority with your root site. Ensure your proxy passes the correct <strong>Host</strong> header.
-                  </p>
-                </div>
-              </div>
             </div>
 
             <div className="lg:col-span-2 space-y-6">
@@ -219,30 +232,64 @@ add_action('init', function() {
                     title="404 on Assets"
                     desc="Rankwithai serves relative paths. Your proxy must handle subpath mapping for images and CSS assets correctly."
                   />
-                  <IssueItem 
-                    title="SSL Errors"
-                    desc="Check if your proxy requires a valid certificate from the upstream. Target: feeds.rankwithai.com"
-                  />
-                  <div className="pt-4 border-t">
-                    <Button variant="outline" className="w-full rounded-xl font-bold text-xs h-10">
-                      View Advanced Docs <ArrowRight className="ml-2 h-3 w-3" />
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
-
-              <div className="p-8 bg-slate-900 text-white rounded-[2.5rem] space-y-4 shadow-2xl relative overflow-hidden">
-                 <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl" />
-                 <h4 className="text-sm font-black uppercase tracking-widest opacity-50">Support</h4>
-                 <p className="text-xs leading-relaxed opacity-80 font-medium">
-                   Need help with a custom Nginx or Apache config? Our specialists can help with structural implementation.
-                 </p>
-                 <Button variant="ghost" className="text-primary hover:bg-primary/10 w-full font-bold text-xs p-0 justify-start h-8">
-                   Contact Implementation Support <ChevronRight className="h-4 w-4" />
-                 </Button>
-              </div>
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="export">
+          <Card className="rounded-[2.5rem] border-border/50 overflow-hidden shadow-sm">
+            <CardHeader className="bg-slate-50 border-b">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <CardTitle className="text-xl font-black tracking-tight">Static HTML Export</CardTitle>
+                  <CardDescription>Download your entire feed as a portable ZIP archive for static hosting.</CardDescription>
+                </div>
+                <div className="p-3 bg-primary/10 rounded-2xl">
+                  <Download className="h-6 w-6 text-primary" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-12 text-center space-y-8">
+              <div className="max-w-md mx-auto space-y-4">
+                <div className="p-6 bg-muted/30 rounded-[2rem] border border-dashed flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center shadow-sm">
+                    <FileArchive className="h-8 w-8 text-primary" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-bold">Ready for Static Hosting</p>
+                    <p className="text-xs text-muted-foreground">Each page is exported as a standalone HTML file with optimized B2B SEO markup.</p>
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={handleExport} 
+                  disabled={exporting} 
+                  size="lg" 
+                  className="w-full h-14 rounded-2xl font-black text-lg shadow-xl shadow-primary/20"
+                >
+                  {exporting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Download className="mr-2 h-5 w-5" />}
+                  Download Static ZIP
+                </Button>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4 pt-8 border-t">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary">Portable</p>
+                  <p className="text-[11px] text-muted-foreground">Host on S3, Netlify, GitHub Pages, or any server.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary">SEO Ready</p>
+                  <p className="text-[11px] text-muted-foreground">Meta tags and FAQ schema are baked into the HTML.</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary">Zero Dependencies</p>
+                  <p className="text-[11px] text-muted-foreground">No Javascript required for the pages to render.</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
