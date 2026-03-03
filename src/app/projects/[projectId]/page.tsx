@@ -5,7 +5,7 @@ import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft, Sparkles, Trash2, ExternalLink, Loader2, LayoutDashboard, Database, FileText, RefreshCw, Users, Eye, Globe } from "lucide-react";
+import { ChevronLeft, Sparkles, Trash2, ExternalLink, Loader2, LayoutDashboard, Database, FileText, RefreshCw, Users, Eye, Globe, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,7 @@ import PreviewScreen from "./preview-screen";
 import RefreshEngine from "./refresh-engine";
 import ProjectDashboard from "./project-dashboard";
 import LeadsPanel from "./leads-panel";
-import CustomDomainManager from "./custom-domain-manager";
+import PublishHelper from "./publish-helper";
 import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { CopilotPanel } from "@/components/copilot/copilot-panel";
 
@@ -80,12 +80,12 @@ export default function ProjectDetails() {
       <div className="grid lg:grid-cols-4 gap-8">
         <div className="lg:col-span-3">
           <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="grid w-full grid-cols-7 mb-8 bg-muted/50 p-1 rounded-xl">
+            <TabsList className="grid w-full grid-cols-7 mb-8 bg-muted/50 p-1 rounded-xl overflow-x-auto">
               <TabsTrigger value="dashboard" className="flex gap-2 text-[10px] md:text-xs"><LayoutDashboard className="h-3 w-3" /> Summary</TabsTrigger>
               <TabsTrigger value="memory" className="flex gap-2 text-[10px] md:text-xs"><Database className="h-3 w-3" /> Memory</TabsTrigger>
               <TabsTrigger value="generate" className="flex gap-2 text-[10px] md:text-xs"><Sparkles className="h-3 w-3" /> Generate</TabsTrigger>
               <TabsTrigger value="preview" className="flex gap-2 text-[10px] md:text-xs"><Eye className="h-3 w-3" /> Preview</TabsTrigger>
-              <TabsTrigger value="domains" className="flex gap-2 text-[10px] md:text-xs"><Globe className="h-3 w-3" /> Domain</TabsTrigger>
+              <TabsTrigger value="publish" className="flex gap-2 text-[10px] md:text-xs"><Share2 className="h-3 w-3" /> Publish</TabsTrigger>
               <TabsTrigger value="refresh" className="flex gap-2 text-[10px] md:text-xs"><RefreshCw className="h-3 w-3" /> Refresh</TabsTrigger>
               <TabsTrigger value="leads" className="flex gap-2 text-[10px] md:text-xs"><Users className="h-3 w-3" /> Leads</TabsTrigger>
             </TabsList>
@@ -121,7 +121,7 @@ export default function ProjectDetails() {
             <TabsContent value="preview">
               <Card className="rounded-[2rem] overflow-hidden border-border/50">
                 <CardHeader>
-                  <CardTitle>Feed Preview & structural Audit</CardTitle>
+                  <CardTitle>Feed Preview & Structural Audit</CardTitle>
                   <CardDescription>Validate and deterministic-repair your generated feed.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -130,8 +130,8 @@ export default function ProjectDetails() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="domains">
-              <CustomDomainManager project={project} />
+            <TabsContent value="publish">
+              <PublishHelper project={project} />
             </TabsContent>
 
             <TabsContent value="refresh">
