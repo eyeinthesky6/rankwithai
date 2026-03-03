@@ -39,6 +39,8 @@
           "items": { "type": "string" }
         },
         "differentiators": { "type": "string" },
+        "certifications": { "type": "string" },
+        "competitors": { "type": "string" },
         "tone": {
           "type": "string",
           "enum": ["Professional", "Technical", "Conversational"]
@@ -84,7 +86,12 @@
         "faqs": {
           "type": "array",
           "items": {
-            "$ref": "#/entities/BrandMemory/properties/faqs/items"
+            "type": "object",
+            "properties": {
+              "question": { "type": "string" },
+              "answer": { "type": "string" }
+            },
+            "required": ["question", "answer"]
           }
         },
         "internalLinks": {
