@@ -25,7 +25,7 @@ service cloud.firestore {
       // Project root document rules
       // Split read into get and list for more robust list filtering
       allow get: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid);
-      allow list: if isSignedIn() && request.query.limit <= 100 && (resource == null || resource.data.ownerId == request.auth.uid);
+      allow list: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid);
       
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update: if isSignedIn() && resource.data.ownerId == request.auth.uid;
@@ -37,58 +37,37 @@ service cloud.firestore {
         // Publicly readable for SEO and feed hosting
         allow read: if true;
         // Only the owner can manage pages
-        allow write: if isSignedIn() && (
-          (resource == null && request.resource.data.ownerId == request.auth.uid) ||
-          (resource != null && resource.data.ownerId == request.auth.uid)
-        );
+        allow write: if isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId);
       }
 
       match /generationRuns/{runId} {
-        allow read, write: if isSignedIn() && (
-          (resource == null && request.resource.data.ownerId == request.auth.uid) ||
-          (resource != null && resource.data.ownerId == request.auth.uid)
-        );
+        allow read, write: if isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId);
       }
 
       match /leads/{leadId} {
+        // Leads can be created publicly by any user visiting a feed page
         allow create: if true;
-        allow read, update, delete: if isSignedIn() && (
-          (resource != null && resource.data.ownerId == request.auth.uid)
-        );
+        // Only the owner can manage their leads
+        allow read, update, delete: if isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId);
       }
 
       match /customDomains/{domainId} {
-        allow read, write: if isSignedIn() && (
-          (resource == null && request.resource.data.ownerId == request.auth.uid) ||
-          (resource != null && resource.data.ownerId == request.auth.uid)
-        );
+        allow read, write: if isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId);
       }
 
       match /aiUsageLogs/{logId} {
-        allow read, write: if isSignedIn() && (
-          (resource == null && request.resource.data.ownerId == request.auth.uid) ||
-          (resource != null && resource.data.ownerId == request.auth.uid)
-        );
+        allow read, write: if isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId);
       }
 
       match /copilotSessions/{sessionId} {
-        allow read, write: if isSignedIn() && (
-          (resource == null && request.resource.data.ownerId == request.auth.uid) ||
-          (resource != null && resource.data.ownerId == request.auth.uid)
-        );
+        allow read, write: if isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId);
         
         match /messages/{messageId} {
-          allow read, write: if isSignedIn() && (
-            (resource == null && request.resource.data.ownerId == request.auth.uid) ||
-            (resource != null && resource.data.ownerId == request.auth.uid)
-          );
+          allow read, write: if isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId);
         }
         
         match /drafts/{draftId} {
-          allow read, write: if isSignedIn() && (
-            (resource == null && request.resource.data.ownerId == request.auth.uid) ||
-            (resource != null && resource.data.ownerId == request.auth.uid)
-          );
+          allow read, write: if isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId);
         }
       }
     }
