@@ -6,16 +6,33 @@ import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Sparkles, ShieldCheck, Zap, Globe, ArrowRight, BarChart3, ChevronRight, LayoutGrid } from 'lucide-react';
 import { useUser, initiateAnonymousSignIn, useAuth } from '@/firebase';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function LandingPage() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const router = useRouter();
 
-  const handleStart = () => {
+  const handleStart = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     if (!user) {
       initiateAnonymousSignIn(auth);
+    } else {
+      router.push('/dashboard');
     }
   };
+
+  // Redirect to dashboard if user logs in while on this page
+  useEffect(() => {
+    if (user && !isUserLoading) {
+      // Optional: auto-redirect
+    }
+  }, [user, isUserLoading]);
 
   return (
     <div className="flex-1 flex flex-col hero-gradient">
@@ -30,10 +47,10 @@ export default function LandingPage() {
             <ThemeToggle />
             {user ? (
               <Link href="/dashboard">
-                <Button size="sm" className="font-bold">Dashboard</Button>
+                <Button size="sm" className="font-bold rounded-xl">Dashboard</Button>
               </Link>
             ) : (
-              <Button onClick={handleStart} size="sm" className="font-bold" disabled={isUserLoading}>
+              <Button onClick={() => handleStart()} size="sm" className="font-bold rounded-xl" disabled={isUserLoading}>
                 {isUserLoading ? 'Loading...' : 'Get Started'}
               </Button>
             )}
@@ -55,11 +72,14 @@ export default function LandingPage() {
             The only SEO engine that respects your budget. Generate thousands of authoritative, service-location feeds using deterministic-first templates.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
-            <Link href={user ? "/dashboard" : "#"}>
-              <Button onClick={handleStart} size="lg" className="h-14 px-10 text-lg font-bold rounded-2xl shadow-xl hover:scale-105 transition-all">
-                Launch My Engine <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
+            <Button 
+              onClick={() => handleStart()} 
+              size="lg" 
+              className="h-14 px-10 text-lg font-bold rounded-2xl shadow-xl hover:scale-105 transition-all"
+              disabled={isUserLoading}
+            >
+              Launch My Engine <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
             <Button variant="outline" size="lg" className="h-14 px-10 text-lg font-bold rounded-2xl">
               View Sample Feed
             </Button>
@@ -106,11 +126,9 @@ export default function LandingPage() {
             <p className="text-primary-foreground/80 text-lg font-medium">
               Join B2B leaders using rankwithai to build programmatic content that actually converts.
             </p>
-            <Link href={user ? "/dashboard" : "#"}>
-              <Button onClick={handleStart} size="lg" variant="secondary" className="h-14 px-12 text-lg font-bold rounded-2xl bg-white text-primary hover:bg-slate-100">
-                Start Free Trial
-              </Button>
-            </Link>
+            <Button onClick={() => handleStart()} size="lg" variant="secondary" className="h-14 px-12 text-lg font-bold rounded-2xl bg-white text-primary hover:bg-slate-100">
+              Start Free Trial
+            </Button>
           </div>
           <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
             <LayoutGrid className="w-full h-full" />

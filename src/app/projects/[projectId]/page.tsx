@@ -5,13 +5,13 @@ import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft, Sparkles, Trash2, ExternalLink, Loader2, LayoutDashboard, Database, FileText, RefreshCw, Users } from "lucide-react";
+import { ChevronLeft, Sparkles, Trash2, ExternalLink, Loader2, LayoutDashboard, Database, FileText, RefreshCw, Users, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import BrandMemoryManager from "./brand-memory-manager";
 import FeedGenerator from "./feed-generator";
-import PageList from "./page-list";
+import PreviewScreen from "./preview-screen";
 import RefreshEngine from "./refresh-engine";
 import ProjectDashboard from "./project-dashboard";
 import LeadsPanel from "./leads-panel";
@@ -83,7 +83,7 @@ export default function ProjectDetails() {
               <TabsTrigger value="dashboard" className="flex gap-2"><LayoutDashboard className="h-4 w-4" /> Summary</TabsTrigger>
               <TabsTrigger value="memory" className="flex gap-2"><Database className="h-4 w-4" /> Memory</TabsTrigger>
               <TabsTrigger value="generate" className="flex gap-2"><Sparkles className="h-4 w-4" /> Generate</TabsTrigger>
-              <TabsTrigger value="pages" className="flex gap-2"><FileText className="h-4 w-4" /> Pages</TabsTrigger>
+              <TabsTrigger value="preview" className="flex gap-2"><Eye className="h-4 w-4" /> Preview</TabsTrigger>
               <TabsTrigger value="refresh" className="flex gap-2"><RefreshCw className="h-4 w-4" /> Refresh</TabsTrigger>
               <TabsTrigger value="leads" className="flex gap-2"><Users className="h-4 w-4" /> Leads</TabsTrigger>
             </TabsList>
@@ -116,13 +116,14 @@ export default function ProjectDetails() {
               </Card>
             </TabsContent>
             
-            <TabsContent value="pages">
+            <TabsContent value="preview">
               <Card className="rounded-[2rem] overflow-hidden border-border/50">
                 <CardHeader>
-                  <CardTitle>Pages</CardTitle>
+                  <CardTitle>Feed Preview & structural Audit</CardTitle>
+                  <CardDescription>Validate and deterministic-repair your generated feed.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <PageList project={project} />
+                  <PreviewScreen project={project} />
                 </CardContent>
               </Card>
             </TabsContent>
