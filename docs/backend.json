@@ -22,7 +22,9 @@
           "properties": {
             "totalCalls": { "type": "number" },
             "totalTokens": { "type": "number" },
-            "lastRunCalls": { "type": "number" }
+            "lastRunCalls": { "type": "number" },
+            "dailyRepairCount": { "type": "number" },
+            "lastRepairDate": { "type": "string" }
           }
         },
         "refreshLogs": {
@@ -41,6 +43,19 @@
         }
       },
       "required": ["id", "ownerId", "name", "slug", "website", "niche", "createdAt"]
+    },
+    "AIUsageLog": {
+      "title": "AIUsageLog",
+      "description": "Log of a single AI repair or optimization call.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "actionType": { "type": "string" },
+        "tokensEstimated": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "pageSlug": { "type": "string" }
+      }
     },
     "CustomDomain": {
       "title": "CustomDomain",
@@ -178,6 +193,7 @@
     "/projects/{projectId}/customDomains/{domainId}": { "schema": "CustomDomain", "description": "Custom domain settings." },
     "/projects/{projectId}/pages/{pageId}": { "schema": "Page", "description": "Generated pages." },
     "/projects/{projectId}/generationRuns/{runId}": { "schema": "GenerationRun", "description": "Generation history." },
-    "/projects/{projectId}/leads/{leadId}": { "schema": "Lead", "description": "Captured leads." }
+    "/projects/{projectId}/leads/{leadId}": { "schema": "Lead", "description": "Captured leads." },
+    "/projects/{projectId}/aiUsageLogs/{logId}": { "schema": "AIUsageLog", "description": "Granular AI usage logs." }
   }
 }

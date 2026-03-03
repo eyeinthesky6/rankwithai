@@ -1,12 +1,13 @@
 
 'use client';
 
-import { Firestore, collection, doc, setDoc, addDoc, serverTimestamp, getDocs, query, where, writeBatch } from 'firebase/firestore';
+import { Firestore, collection, doc, setDoc, addDoc, serverTimestamp, getDocs, query, where, writeBatch, updateDoc, increment } from 'firebase/firestore';
 import { generateSkeletons, PageSkeleton } from './templates';
 import { generateBatchContent } from '@/ai/flows/generate-feed-pages';
 import { validatePageContent } from './quality-validator';
 
-const AI_CALL_CAP = 10; // Hard limit per run to protect budget
+const AI_CALL_CAP = 10; // Batch generation cap
+const REPAIR_DAILY_CAP = 5; // Individual repair cap per day
 
 /**
  * Service to handle cost-optimized page generation with strict credit governance.
@@ -16,10 +17,8 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
   const ownerId = project.ownerId;
   const projectId = project.id;
 
-  // 1. Idempotency Check: Get existing brand memory hash
   const currentHash = JSON.stringify(brandMemory).split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0).toString();
 
-  // 2. Create Generation Run Log
   const runRef = await addDoc(collection(db, 'projects', projectId, 'generationRuns'), {
     projectId,
     timestamp: serverTimestamp(),
@@ -31,11 +30,9 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
   });
 
   try {
-    // 3. Generate Deterministic Skeletons
     onProgress(10);
     const allSkeletons = generateSkeletons(brandMemory, requestedCount);
     
-    // 4. Skip Idempotent Pages
     const existingPagesSnap = await getDocs(query(collection(db, 'projects', projectId, 'pages'), where('brandMemoryHash', '==', currentHash)));
     const existingSlugs = new Set(existingPagesSnap.docs.map(d => d.data().slug));
     
@@ -48,7 +45,6 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
       return;
     }
 
-    // 5. Batch Process Skeletons (10 at a time)
     const BATCH_SIZE = 10;
     const results = [];
     let aiCallCount = 0;
@@ -68,7 +64,6 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
       onProgress(10 + Math.floor((results.length / skeletonsToProcess.length) * 80));
     }
 
-    // 6. Validate & Save to Firestore in Batches
     onProgress(95);
     const firestoreBatch = writeBatch(db);
     let totalGenerated = 0;
@@ -94,7 +89,7 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
         createdAt: serverTimestamp(),
         brandMemoryHash: currentHash,
         contentScore: quality.score,
-        validationErrors: quality.errors,
+        validationErrors: quality.issues,
         version: 1
       });
       totalGenerated++;
@@ -102,12 +97,11 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
 
     await firestoreBatch.commit();
 
-    // 7. Update Project & Run Log
     const projectRef = doc(db, 'projects', projectId);
     await setDoc(projectRef, { 
       lastGenerationHash: currentHash,
       "aiUsage.lastRunCalls": aiCallCount,
-      "aiUsage.totalCalls": (project.aiUsage?.totalCalls || 0) + aiCallCount
+      "aiUsage.totalCalls": increment(aiCallCount)
     }, { merge: true });
 
     await setDoc(runRef, {
@@ -127,4 +121,36 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
     }, { merge: true });
     throw e;
   }
+}
+
+/**
+ * Checks budget and logs individual AI usage for repairs.
+ */
+export async function checkAndLogRepairBudget(db: Firestore, project: any, actionType: string, pageSlug: string) {
+  const projectId = project.id;
+  const today = new Date().toISOString().split('T')[0];
+  const usage = project.aiUsage || {};
+
+  // Check budget
+  if (usage.lastRepairDate === today && (usage.dailyRepairCount || 0) >= REPAIR_DAILY_CAP) {
+    throw new Error(`Daily AI repair limit (${REPAIR_DAILY_CAP}) reached for this project.`);
+  }
+
+  // Log usage
+  await addDoc(collection(db, 'projects', projectId, 'aiUsageLogs'), {
+    projectId,
+    actionType,
+    pageSlug,
+    tokensEstimated: 500, // Static estimate for UX
+    createdAt: serverTimestamp()
+  });
+
+  // Update project counters
+  const projectRef = doc(db, 'projects', projectId);
+  const updates: any = {
+    "aiUsage.totalCalls": increment(1),
+    "aiUsage.dailyRepairCount": usage.lastRepairDate === today ? increment(1) : 1,
+    "aiUsage.lastRepairDate": today
+  };
+  await updateDoc(projectRef, updates);
 }
