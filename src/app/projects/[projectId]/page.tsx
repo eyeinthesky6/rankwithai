@@ -1,13 +1,15 @@
+
 import { db } from "@/app/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, BrainCircuit, Sparkles, Files, Download, Trash2, ExternalLink } from "lucide-react";
+import { ChevronLeft, BrainCircuit, Sparkles, Files, Activity, Trash2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import BrandMemoryManager from "./brand-memory-manager";
 import FeedGenerator from "./feed-generator";
 import PageList from "./page-list";
+import RefreshEngine from "./refresh-engine";
 import { deleteProjectAction } from "@/app/lib/actions";
 
 export default async function ProjectDetails({ params }: { params: { projectId: string } }) {
@@ -43,7 +45,7 @@ export default async function ProjectDetails({ params }: { params: { projectId: 
       </div>
 
       <Tabs defaultValue="memory" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-md mb-8">
+        <TabsList className="grid w-full grid-cols-4 max-w-lg mb-8">
           <TabsTrigger value="memory" className="flex items-center gap-2">
             <BrainCircuit className="h-4 w-4" /> Memory
           </TabsTrigger>
@@ -51,7 +53,10 @@ export default async function ProjectDetails({ params }: { params: { projectId: 
             <Sparkles className="h-4 w-4" /> Generate
           </TabsTrigger>
           <TabsTrigger value="feed" className="flex items-center gap-2">
-            <Files className="h-4 w-4" /> Feed
+            <Files className="h-4 w-4" /> Pages
+          </TabsTrigger>
+          <TabsTrigger value="refresh" className="flex items-center gap-2">
+            <Activity className="h-4 w-4" /> Refresh
           </TabsTrigger>
         </TabsList>
         
@@ -85,21 +90,28 @@ export default async function ProjectDetails({ params }: { params: { projectId: 
         
         <TabsContent value="feed" className="space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Generated Feed</CardTitle>
-                <CardDescription>
-                  View and export the generated pages for this project.
-                </CardDescription>
-              </div>
-              {project.pages && (
-                <Button variant="outline" className="flex items-center gap-2 border-secondary text-secondary">
-                  <Download className="h-4 w-4" /> Export ZIP
-                </Button>
-              )}
+            <CardHeader>
+              <CardTitle>Generated Pages</CardTitle>
+              <CardDescription>
+                View and manage the generated SEO pages for this project.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <PageList project={project} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="refresh" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Refresh Engine</CardTitle>
+              <CardDescription>
+                Connect search metrics to trigger AI-powered content refreshes and meta-tag optimizations.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RefreshEngine project={project} />
             </CardContent>
           </Card>
         </TabsContent>

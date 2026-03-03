@@ -98,9 +98,39 @@
           "type": "array",
           "items": { "type": "string" }
         },
+        "versions": {
+          "type": "array",
+          "items": { "$ref": "#/backend/entities/PageVersion" }
+        },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["slug", "type", "seoTitle", "metaDescription", "h1", "sections", "createdAt"]
+    },
+    "PageVersion": {
+      "title": "PageVersion",
+      "description": "Historical state of a page.",
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "string", "format": "date-time" },
+        "seoTitle": { "type": "string" },
+        "metaDescription": { "type": "string" },
+        "faqs": { "type": "array", "items": { "type": "object" } },
+        "reason": { "type": "string" }
+      }
+    },
+    "RefreshLog": {
+      "title": "RefreshLog",
+      "description": "History of refresh actions triggered by the engine.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "pageSlug": { "type": "string" },
+        "ruleTriggered": { "type": "string" },
+        "metricValue": { "type": "string" },
+        "actionTaken": { "type": "string" }
+      }
     }
   },
   "auth": {
@@ -118,6 +148,10 @@
     "/projects/{projectId}/pages/{pageId}": {
       "schema": "Page",
       "description": "Generated content pages."
+    },
+    "/projects/{projectId}/refreshLogs/{logId}": {
+      "schema": "RefreshLog",
+      "description": "History of AI refresh actions."
     }
   }
 }

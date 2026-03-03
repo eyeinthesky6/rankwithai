@@ -1,5 +1,29 @@
+
 import { SuggestBrandMemoryOutput } from "@/ai/flows/suggest-brand-memory-flow";
 import { GenerateFeedPagesOutput } from "@/ai/flows/generate-feed-pages";
+
+export interface PageHistory {
+  timestamp: string;
+  seoTitle: string;
+  metaDescription: string;
+  faqs: any[];
+  reason: string;
+}
+
+export interface RefreshLog {
+  id: string;
+  projectId: string;
+  timestamp: string;
+  pageSlug: string;
+  ruleTriggered: string;
+  metricValue: string;
+  actionTaken: string;
+}
+
+export interface ProjectPage extends any {
+  slug: string;
+  history?: PageHistory[];
+}
 
 export interface Project {
   id: string;
@@ -9,15 +33,12 @@ export interface Project {
   niche: string;
   createdAt: number;
   brandMemory?: SuggestBrandMemoryOutput;
-  pages?: GenerateFeedPagesOutput;
+  pages?: ProjectPage[];
+  refreshLogs?: RefreshLog[];
 }
 
 class MockDB {
   private projects: Map<string, Project> = new Map();
-
-  constructor() {
-    // Initial mock data if needed for first load
-  }
 
   async getAllProjects(): Promise<Project[]> {
     return Array.from(this.projects.values()).sort((a, b) => b.createdAt - a.createdAt);
@@ -57,7 +78,6 @@ class MockDB {
   }
 }
 
-// Singleton for development
 const globalForDb = global as unknown as { db: MockDB };
 export const db = globalForDb.db || new MockDB();
 if (process.env.NODE_ENV !== "production") globalForDb.db = db;
