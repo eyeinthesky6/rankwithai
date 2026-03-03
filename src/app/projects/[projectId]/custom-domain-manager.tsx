@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -12,7 +11,6 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, doc, setDoc, deleteDoc, serverTimestamp, query, limit } from "firebase/firestore";
 import { verifyDomainDns } from "@/ai/flows/verify-domain-dns";
 import { Badge } from '@/components/ui/badge';
-import { updateDocumentNonBlocking } from '@/firebase';
 
 export default function CustomDomainManager({ project }: { project: any }) {
   const [domainInput, setDomainInput] = useState('');
@@ -49,6 +47,7 @@ export default function CustomDomainManager({ project }: { project: any }) {
     try {
       await setDoc(doc(db, 'projects', project.id, 'customDomains', id), {
         projectId: project.id,
+        ownerId: project.ownerId,
         requestedDomain: domainInput,
         status: 'REQUESTED',
         verificationToken: token,
@@ -140,48 +139,48 @@ export default function CustomDomainManager({ project }: { project: any }) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       {!project.customDomainEnabled && (
-        <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-[2rem] flex flex-col sm:flex-row items-center gap-6">
-          <div className="flex-1 space-y-1">
-            <h4 className="text-sm font-black text-amber-700 tracking-tight flex items-center gap-2">
+        <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-[2rem] flex flex-col sm:flex-row items-center gap-6 shadow-sm">
+          <div className="flex-1 space-y-1 text-center sm:text-left">
+            <h4 className="text-sm font-black text-amber-700 tracking-tight flex items-center justify-center sm:justify-start gap-2">
               <ShieldCheck className="h-4 w-4" /> Pro Feature
             </h4>
             <p className="text-xs text-amber-600 font-medium">
               Custom Domain support is currently locked. Upgrade your project to white-label your content feeds.
             </p>
           </div>
-          <Button variant="outline" className="border-amber-200 text-amber-700 font-bold rounded-xl" onClick={() => toast({ title: "Pro Tiers coming soon!" })}>
+          <Button variant="outline" className="border-amber-200 text-amber-700 font-bold rounded-xl h-10" onClick={() => toast({ title: "Pro Tiers coming soon!" })}>
             View Pricing
           </Button>
         </div>
       )}
 
       {!domain ? (
-        <Card className="rounded-[2rem] border-dashed border-border/60 bg-transparent overflow-hidden">
+        <Card className="rounded-[2.5rem] border-dashed border-border/60 bg-transparent overflow-hidden shadow-none">
           <CardHeader className="text-center pt-12 pb-6">
-            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-4">
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-4 shadow-inner">
               <Globe className="h-8 w-8" />
             </div>
-            <CardTitle className="text-2xl font-black">White-Label Your Feed</CardTitle>
-            <CardDescription className="max-w-xs mx-auto">
+            <CardTitle className="text-2xl font-black tracking-tight">White-Label Your Feed</CardTitle>
+            <CardDescription className="max-w-xs mx-auto text-balance font-medium">
               Host your AI content on a custom subdomain like <strong>feeds.yourcompany.com</strong>.
             </CardDescription>
           </CardHeader>
           <CardContent className="pb-12 px-12">
             <div className="max-w-sm mx-auto flex flex-col gap-4">
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-widest opacity-60">Requested Subdomain</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest opacity-60 px-1">Requested Subdomain</Label>
                 <Input 
                   placeholder="feeds.yourdomain.com" 
                   value={domainInput} 
                   onChange={(e) => setDomainInput(e.target.value)}
                   disabled={!project.customDomainEnabled || loading}
-                  className="h-12 rounded-xl text-center"
+                  className="h-12 rounded-xl text-center shadow-sm"
                 />
               </div>
               <Button 
                 onClick={handleAddDomain} 
                 disabled={!project.customDomainEnabled || loading || !domainInput}
-                className="h-12 font-black rounded-xl shadow-lg"
+                className="h-12 font-black rounded-xl shadow-lg shadow-primary/20"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Configure Custom Domain"}
               </Button>
@@ -190,17 +189,17 @@ export default function CustomDomainManager({ project }: { project: any }) {
         </Card>
       ) : (
         <div className="grid lg:grid-cols-2 gap-8">
-          <Card className="rounded-[2rem] border-border/50">
-            <CardHeader>
-              <div className="flex justify-between items-start">
+          <Card className="rounded-[2.5rem] border-border/50 shadow-sm overflow-hidden">
+            <CardHeader className="bg-slate-50 border-b">
+              <div className="flex justify-between items-center">
                 <div className="space-y-1">
-                  <CardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
+                  <CardTitle className="text-lg font-black tracking-tight flex items-center gap-2">
                     <Globe className="h-5 w-5 text-primary" /> {domain.requestedDomain}
                   </CardTitle>
-                  <CardDescription className="text-xs font-bold uppercase">Current Status</CardDescription>
+                  <CardDescription className="text-[10px] font-black uppercase tracking-widest opacity-60">Deployment Registry</CardDescription>
                 </div>
-                <Badge className={`rounded-full px-3 py-1 font-bold ${
-                  domain.status === 'ACTIVE' ? 'bg-green-500/10 text-green-600 border-green-200' :
+                <Badge className={`rounded-full px-3 py-1 font-bold text-[10px] ${
+                  domain.status === 'ACTIVE' ? 'bg-green-500/10 text-green-600 border-green-200 shadow-sm' :
                   domain.status === 'VERIFIED' ? 'bg-blue-500/10 text-blue-600 border-blue-200' :
                   'bg-amber-500/10 text-amber-600 border-amber-200'
                 }`}>
@@ -208,28 +207,28 @@ export default function CustomDomainManager({ project }: { project: any }) {
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 pt-6">
               <div className="space-y-4">
-                <div className="p-4 bg-muted/40 rounded-2xl space-y-3">
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Step 1: Ownership Verification</p>
-                  <div className="grid grid-cols-1 gap-2">
-                    <div className="flex flex-col gap-1 p-3 bg-background rounded-xl border border-border/50">
-                      <span className="text-[10px] font-black opacity-50">TXT HOST</span>
-                      <div className="flex justify-between items-center text-xs font-mono">
-                        <span>_aifeed-verify.{domain.requestedDomain.split('.')[0]}</span>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleCopy(`_aifeed-verify.${domain.requestedDomain.split('.')[0]}`, 'Host')}><Copy className="h-3 w-3" /></Button>
+                <div className="p-5 bg-muted/40 rounded-3xl space-y-4 border border-transparent hover:border-border/50 transition-all">
+                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Step 1: Ownership Verification</p>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="flex flex-col gap-1.5 p-4 bg-background rounded-2xl border border-border/50 shadow-sm">
+                      <span className="text-[9px] font-black opacity-50 uppercase">TXT HOST</span>
+                      <div className="flex justify-between items-center text-[11px] font-mono font-bold">
+                        <span className="truncate">_aifeed-verify.{domain.requestedDomain.split('.')[0]}</span>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => handleCopy(`_aifeed-verify.${domain.requestedDomain.split('.')[0]}`, 'Host')}><Copy className="h-3.5 w-3.5" /></Button>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-1 p-3 bg-background rounded-xl border border-border/50">
-                      <span className="text-[10px] font-black opacity-50">VALUE</span>
-                      <div className="flex justify-between items-center text-xs font-mono">
+                    <div className="flex flex-col gap-1.5 p-4 bg-background rounded-2xl border border-border/50 shadow-sm">
+                      <span className="text-[9px] font-black opacity-50 uppercase">VALUE</span>
+                      <div className="flex justify-between items-center text-[11px] font-mono font-bold">
                         <span className="truncate pr-4">{domain.verificationToken}</span>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleCopy(domain.verificationToken, 'Token')}><Copy className="h-3 w-3" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => handleCopy(domain.verificationToken, 'Token')}><Copy className="h-3.5 w-3.5" /></Button>
                       </div>
                     </div>
                   </div>
                   <Button 
-                    className="w-full font-bold rounded-xl" 
+                    className="w-full font-bold rounded-xl h-11 shadow-sm" 
                     variant={domain.status === 'REQUESTED' ? 'default' : 'outline'}
                     onClick={handleVerify}
                     disabled={loading || domain.status !== 'REQUESTED'}
@@ -238,17 +237,17 @@ export default function CustomDomainManager({ project }: { project: any }) {
                   </Button>
                 </div>
 
-                <div className={`p-4 rounded-2xl space-y-3 transition-opacity ${domain.status === 'REQUESTED' ? 'opacity-40 grayscale pointer-events-none' : 'bg-primary/5 border border-primary/10'}`}>
-                  <p className="text-xs font-bold text-primary uppercase tracking-widest">Step 2: Routing Activation</p>
-                  <div className="flex flex-col gap-1 p-3 bg-background rounded-xl border border-primary/20">
-                    <span className="text-[10px] font-black opacity-50">CNAME TARGET</span>
-                    <div className="flex justify-between items-center text-xs font-mono font-bold text-primary">
+                <div className={`p-5 rounded-3xl space-y-4 transition-all duration-500 border ${domain.status === 'REQUESTED' ? 'opacity-40 grayscale pointer-events-none' : 'bg-primary/5 border-primary/10 shadow-inner'}`}>
+                  <p className="text-[10px] font-black text-primary uppercase tracking-widest">Step 2: Routing Activation</p>
+                  <div className="flex flex-col gap-1.5 p-4 bg-background rounded-2xl border border-primary/20 shadow-sm">
+                    <span className="text-[9px] font-black opacity-50 uppercase">CNAME TARGET</span>
+                    <div className="flex justify-between items-center text-[11px] font-mono font-bold text-primary">
                       <span>feeds.rankwithai.com</span>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-primary" onClick={() => handleCopy('feeds.rankwithai.com', 'CNAME')}><Copy className="h-3 w-3" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-primary" onClick={() => handleCopy('feeds.rankwithai.com', 'CNAME')}><Copy className="h-3.5 w-3.5" /></Button>
                     </div>
                   </div>
                   <Button 
-                    className="w-full font-black rounded-xl shadow-lg" 
+                    className="w-full font-black rounded-xl h-11 shadow-lg shadow-primary/20" 
                     onClick={handleActivate}
                     disabled={loading || domain.status !== 'VERIFIED'}
                   >
@@ -258,49 +257,49 @@ export default function CustomDomainManager({ project }: { project: any }) {
               </div>
 
               {domain.lastError && (
-                <div className="p-4 bg-destructive/5 border border-destructive/20 rounded-2xl flex gap-3 text-destructive">
+                <div className="p-4 bg-destructive/5 border border-destructive/20 rounded-2xl flex gap-3 text-destructive animate-in slide-in-from-top-2">
                   <AlertCircle className="h-4 w-4 shrink-0" />
-                  <p className="text-xs font-medium leading-relaxed">{domain.lastError}</p>
+                  <p className="text-[11px] font-bold leading-relaxed">{domain.lastError}</p>
                 </div>
               )}
 
-              <Button variant="ghost" className="w-full text-destructive hover:bg-destructive/10 font-bold" onClick={handleDelete} disabled={loading}>
-                <Trash2 className="h-4 w-4 mr-2" /> Remove Domain Configuration
+              <Button variant="ghost" className="w-full text-destructive hover:bg-destructive/10 font-bold h-10 rounded-xl" onClick={handleDelete} disabled={loading}>
+                <Trash2 className="h-3.5 w-3.5 mr-2" /> Remove Configuration
               </Button>
             </CardContent>
           </Card>
 
           <div className="space-y-6">
-             <div className="p-8 bg-slate-900 text-white rounded-[2rem] space-y-6 shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-[40px] -mr-16 -mt-16" />
-                <h4 className="text-xl font-black tracking-tight relative z-10">Why use custom domains?</h4>
-                <ul className="space-y-4 relative z-10">
-                   <li className="flex gap-3 text-sm">
-                      <div className="w-5 h-5 bg-primary/20 rounded flex items-center justify-center text-primary shrink-0">1</div>
-                      <p className="opacity-80"><strong>Brand Authority:</strong> Your customers trust your URL more than a third-party subdomain.</p>
+             <div className="p-8 bg-slate-900 text-white rounded-[2.5rem] space-y-6 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-[60px] -mr-16 -mt-16" />
+                <h4 className="text-xl font-black tracking-tight relative z-10">Whitelabel Strategy</h4>
+                <ul className="space-y-5 relative z-10">
+                   <li className="flex gap-4 items-start">
+                      <div className="w-6 h-6 bg-primary/20 rounded-lg flex items-center justify-center text-primary shrink-0 text-xs font-black">01</div>
+                      <p className="text-xs opacity-80 leading-relaxed font-medium"><strong>Brand Integrity:</strong> Maintaining your domain name increases trust and conversion rates for B2B leads.</p>
                    </li>
-                   <li className="flex gap-3 text-sm">
-                      <div className="w-5 h-5 bg-primary/20 rounded flex items-center justify-center text-primary shrink-0">2</div>
-                      <p className="opacity-80"><strong>SEO Equity:</strong> Consolidate search traffic and backlink power on your root domain.</p>
+                   <li className="flex gap-4 items-start">
+                      <div className="w-6 h-6 bg-primary/20 rounded-lg flex items-center justify-center text-primary shrink-0 text-xs font-black">02</div>
+                      <p className="text-xs opacity-80 leading-relaxed font-medium"><strong>SEO Consolidation:</strong> Traffic generated by the AI feed contributes directly to your main domain's search authority.</p>
                    </li>
-                   <li className="flex gap-3 text-sm">
-                      <div className="w-5 h-5 bg-primary/20 rounded flex items-center justify-center text-primary shrink-0">3</div>
-                      <p className="opacity-80"><strong>Whitelabel Experience:</strong> Provide a seamless journey for users from your app to the content feed.</p>
+                   <li className="flex gap-4 items-start">
+                      <div className="w-6 h-6 bg-primary/20 rounded-lg flex items-center justify-center text-primary shrink-0 text-xs font-black">03</div>
+                      <p className="text-xs opacity-80 leading-relaxed font-medium"><strong>Seamless UX:</strong> Users remain within your ecosystem throughout their entire educational journey.</p>
                    </li>
                 </ul>
-                <div className="pt-4 flex items-center gap-2 text-[10px] font-mono text-primary/60 uppercase font-black">
-                   <ArrowRight className="h-3 w-3" /> Professional SEO Standard
+                <div className="pt-6 border-t border-white/10 flex items-center gap-2 text-[9px] font-mono text-primary/60 uppercase font-black tracking-widest">
+                   <ArrowRight className="h-3 w-3" /> Enterprise Whitelabel Standard
                 </div>
              </div>
 
-             <div className="p-6 border rounded-[2rem] bg-slate-50 space-y-4">
-                <h4 className="text-xs font-black uppercase tracking-widest opacity-60">Help & Support</h4>
+             <div className="p-6 border rounded-[2.5rem] bg-slate-50 space-y-4 shadow-inner">
+                <h4 className="text-[10px] font-black uppercase tracking-widest opacity-60 px-1">Infrastructure Support</h4>
                 <div className="space-y-3">
-                   <p className="text-xs text-muted-foreground leading-relaxed">
-                      DNS propagation can take anywhere from 1 to 24 hours. Most TXT records resolve within 30 minutes.
+                   <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                      DNS propagation can take anywhere from 1 to 24 hours depending on your TTL settings. Most records resolve within 30 minutes.
                    </p>
-                   <a href="#" className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
-                      Read DNS Setup Guide <ArrowRight className="h-3 w-3" />
+                   <a href="#" className="text-xs font-bold text-primary hover:underline flex items-center gap-1 group">
+                      DNS Setup Documentation <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
                    </a>
                 </div>
              </div>
