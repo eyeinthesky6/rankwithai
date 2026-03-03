@@ -12,6 +12,7 @@ export interface PageSkeleton {
   metaDescription: string;
   sections: { h2: string; placeholder: string }[];
   context: any;
+  internalLinks: string[];
 }
 
 export function generateSkeletons(brandMemory: any, count: number): PageSkeleton[] {
@@ -24,6 +25,11 @@ export function generateSkeletons(brandMemory: any, count: number): PageSkeleton
       for (const service of services) {
         if (skeletons.length >= count) break;
         const slug = `${service}-${loc}`.toLowerCase().replace(/ /g, '-');
+        
+        // Find related locations for internal linking
+        const otherLocs = locations.filter((l: string) => l !== loc).slice(0, 3);
+        const internalLinks = otherLocs.map((l: string) => `${service}-${l}`.toLowerCase().replace(/ /g, '-'));
+
         skeletons.push({
           slug,
           type: 'Service+Location',
@@ -35,7 +41,8 @@ export function generateSkeletons(brandMemory: any, count: number): PageSkeleton
             { h2: `Our ${service} Process`, placeholder: 'process_content' },
             { h2: `Local Support for ${loc} Businesses`, placeholder: 'local_content' }
           ],
-          context: { service, location: loc }
+          context: { service, location: loc },
+          internalLinks
         });
       }
     }
@@ -47,6 +54,11 @@ export function generateSkeletons(brandMemory: any, count: number): PageSkeleton
       for (const service of services) {
         if (skeletons.length >= count) break;
         const slug = `${service}-for-${ind}`.toLowerCase().replace(/ /g, '-');
+        
+        // Find related industries for internal linking
+        const otherInds = industries.filter((i: string) => i !== ind).slice(0, 3);
+        const internalLinks = otherInds.map((i: string) => `${service}-for-${i}`.toLowerCase().replace(/ /g, '-'));
+
         skeletons.push({
           slug,
           type: 'Service+Industry',
@@ -57,7 +69,8 @@ export function generateSkeletons(brandMemory: any, count: number): PageSkeleton
             { h2: `Addressing ${ind} Challenges with ${service}`, placeholder: 'industry_pain_point' },
             { h2: `Specialized ${service} for ${ind}`, placeholder: 'specialized_solution' }
           ],
-          context: { service, industry: ind }
+          context: { service, industry: ind },
+          internalLinks
         });
       }
     }
@@ -82,7 +95,8 @@ export function generateSkeletons(brandMemory: any, count: number): PageSkeleton
         { h2: 'Expert Insights', placeholder: 'expert_answer' },
         { h2: 'Key Considerations', placeholder: 'considerations' }
       ],
-      context: { question: q }
+      context: { question: q },
+      internalLinks: [] // Questions link to services generally
     });
   }
 

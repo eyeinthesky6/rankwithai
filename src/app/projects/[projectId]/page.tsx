@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft, Sparkles, Trash2, ExternalLink, Loader2 } from "lucide-react";
+import { ChevronLeft, Sparkles, Trash2, ExternalLink, Loader2, LayoutDashboard, Database, FileText, RefreshCw, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,8 @@ import BrandMemoryManager from "./brand-memory-manager";
 import FeedGenerator from "./feed-generator";
 import PageList from "./page-list";
 import RefreshEngine from "./refresh-engine";
+import ProjectDashboard from "./project-dashboard";
+import LeadsPanel from "./leads-panel";
 import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { CopilotPanel } from "@/components/copilot/copilot-panel";
 
@@ -73,18 +76,24 @@ export default function ProjectDetails() {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <Tabs defaultValue="memory" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-8">
-              <TabsTrigger value="memory">Memory</TabsTrigger>
-              <TabsTrigger value="generate">Generate</TabsTrigger>
-              <TabsTrigger value="feed">Pages</TabsTrigger>
-              <TabsTrigger value="refresh">Refresh</TabsTrigger>
+      <div className="grid lg:grid-cols-4 gap-8">
+        <div className="lg:col-span-3">
+          <Tabs defaultValue="dashboard" className="w-full">
+            <TabsList className="grid w-full grid-cols-6 mb-8 bg-muted/50 p-1 rounded-xl">
+              <TabsTrigger value="dashboard" className="flex gap-2"><LayoutDashboard className="h-4 w-4" /> Summary</TabsTrigger>
+              <TabsTrigger value="memory" className="flex gap-2"><Database className="h-4 w-4" /> Memory</TabsTrigger>
+              <TabsTrigger value="generate" className="flex gap-2"><Sparkles className="h-4 w-4" /> Generate</TabsTrigger>
+              <TabsTrigger value="pages" className="flex gap-2"><FileText className="h-4 w-4" /> Pages</TabsTrigger>
+              <TabsTrigger value="refresh" className="flex gap-2"><RefreshCw className="h-4 w-4" /> Refresh</TabsTrigger>
+              <TabsTrigger value="leads" className="flex gap-2"><Users className="h-4 w-4" /> Leads</TabsTrigger>
             </TabsList>
             
+            <TabsContent value="dashboard">
+              <ProjectDashboard project={project} />
+            </TabsContent>
+
             <TabsContent value="memory">
-              <Card>
+              <Card className="rounded-[2rem] overflow-hidden border-border/50">
                 <CardHeader>
                   <CardTitle>Brand Memory</CardTitle>
                   <CardDescription>Identity context for all AI generations.</CardDescription>
@@ -96,7 +105,7 @@ export default function ProjectDetails() {
             </TabsContent>
             
             <TabsContent value="generate">
-              <Card>
+              <Card className="rounded-[2rem] overflow-hidden border-border/50">
                 <CardHeader>
                   <CardTitle>Feed Generation</CardTitle>
                   <CardDescription>Batch-processed deterministic page generation.</CardDescription>
@@ -107,8 +116,8 @@ export default function ProjectDetails() {
               </Card>
             </TabsContent>
             
-            <TabsContent value="feed">
-              <Card>
+            <TabsContent value="pages">
+              <Card className="rounded-[2rem] overflow-hidden border-border/50">
                 <CardHeader>
                   <CardTitle>Pages</CardTitle>
                 </CardHeader>
@@ -119,7 +128,7 @@ export default function ProjectDetails() {
             </TabsContent>
 
             <TabsContent value="refresh">
-              <Card>
+              <Card className="rounded-[2rem] overflow-hidden border-border/50">
                 <CardHeader>
                   <CardTitle>Refresh Engine</CardTitle>
                 </CardHeader>
@@ -127,6 +136,10 @@ export default function ProjectDetails() {
                   <RefreshEngine project={project} />
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="leads">
+              <LeadsPanel project={project} />
             </TabsContent>
           </Tabs>
         </div>

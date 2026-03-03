@@ -14,7 +14,16 @@
         "niche": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "brandMemory": { "$ref": "#/backend/entities/BrandMemory" },
-        "lastGenerationHash": { "type": "string", "description": "Hash of brand memory used for the last successful generation." }
+        "lastGenerationHash": { "type": "string" },
+        "templateVersion": { "type": "number" },
+        "aiUsage": {
+          "type": "object",
+          "properties": {
+            "totalCalls": { "type": "number" },
+            "totalTokens": { "type": "number" },
+            "lastRunCalls": { "type": "number" }
+          }
+        }
       },
       "required": ["id", "ownerId", "name", "slug", "website", "niche", "createdAt"]
     },
@@ -69,11 +78,30 @@
           }
         },
         "faqs": { "type": "array", "items": { "type": "object" } },
+        "internalLinks": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" },
         "brandMemoryHash": { "type": "string" },
+        "contentScore": { "type": "number" },
+        "validationErrors": { "type": "array", "items": { "type": "string" } },
         "version": { "type": "number" }
       },
       "required": ["slug", "type", "seoTitle", "metaDescription", "h1", "sections", "createdAt"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "A lead captured from a public feed page.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "pageSlug": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["New", "Contacted", "Closed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["projectId", "pageSlug", "name", "email", "createdAt"]
     },
     "GenerationRun": {
       "title": "GenerationRun",
@@ -83,36 +111,15 @@
         "id": { "type": "string" },
         "projectId": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["started", "completed", "failed"] },
+        "status": { "type": "string", "enum": ["started", "completed", "failed", "aborted"] },
         "requestedCount": { "type": "number" },
         "generatedCount": { "type": "number" },
+        "skippedCount": { "type": "number" },
         "aiCalls": { "type": "number" },
         "tokensUsed": { "type": "number" },
         "errors": { "type": "array", "items": { "type": "string" } },
-        "brandMemoryHash": { "type": "string" }
-      }
-    },
-    "CopilotSession": {
-      "title": "CopilotSession",
-      "description": "A chat session with the AI Setup Copilot.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "projectId": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["active", "completed"] },
-        "lastDraft": { "type": "object" },
-        "aiCallCount": { "type": "number" }
-      }
-    },
-    "CopilotMessage": {
-      "title": "CopilotMessage",
-      "description": "A message within a copilot session.",
-      "type": "object",
-      "properties": {
-        "role": { "type": "string", "enum": ["user", "assistant"] },
-        "content": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "brandMemoryHash": { "type": "string" },
+        "abortReason": { "type": "string" }
       }
     }
   },
@@ -123,7 +130,6 @@
     "/projects/{projectId}": { "schema": "Project", "description": "Project root." },
     "/projects/{projectId}/pages/{pageId}": { "schema": "Page", "description": "Generated pages." },
     "/projects/{projectId}/generationRuns/{runId}": { "schema": "GenerationRun", "description": "Generation history." },
-    "/projects/{projectId}/copilotSessions/{sessionId}": { "schema": "CopilotSession", "description": "Copilot chat session." },
-    "/projects/{projectId}/copilotSessions/{sessionId}/messages/{messageId}": { "schema": "CopilotMessage", "description": "Chat messages." }
+    "/projects/{projectId}/leads/{leadId}": { "schema": "Lead", "description": "Captured leads." }
   }
 }
