@@ -12,7 +12,6 @@ service cloud.firestore {
 
     /**
      * @description Helper to check if the authenticated user is the owner of the data.
-     * @param userId The UID to compare against the current authenticated user's UID.
      */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
@@ -24,9 +23,13 @@ service cloud.firestore {
     match /projects/{projectId} {
       
       // Project root document rules
-      allow read: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid);
+      // Split read into get and list for more robust list filtering
+      allow get: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid);
+      allow list: if isSignedIn() && request.query.limit <= 100 && (resource == null || resource.data.ownerId == request.auth.uid);
+      
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
 
       // Subcollections
 
@@ -48,10 +51,7 @@ service cloud.firestore {
       }
 
       match /leads/{leadId} {
-        // Public lead capture form needs to create documents
-        // We set ownerId in code, but here we allow public create
         allow create: if true;
-        // Only the owner can view or manage leads
         allow read, update, delete: if isSignedIn() && (
           (resource != null && resource.data.ownerId == request.auth.uid)
         );

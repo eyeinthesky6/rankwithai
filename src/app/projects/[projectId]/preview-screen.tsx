@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Eye, CheckCircle, AlertTriangle, Hammer, Loader2, ExternalLink, RefreshCw, Sparkles, MessageSquare, History, RefreshCcw } from "lucide-react";
+import { Search, Eye, CheckCircle, AlertTriangle, Hammer, Loader2, ExternalLink, RefreshCw, Sparkles, MessageSquare, History, RefreshCcw, AlertCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
@@ -26,7 +26,6 @@ import { autoFixPage } from "@/app/lib/auto-fixer";
 import { refreshContent } from "@/ai/flows/refresh-content-flow";
 import { checkAndLogRepairBudget } from "@/app/lib/generation-service";
 import { useToast } from "@/hooks/use-toast";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function PreviewScreen({ project }: { project: any }) {
   const [filter, setFilter] = useState('');
@@ -104,7 +103,7 @@ export default function PreviewScreen({ project }: { project: any }) {
     const result = validatePageContent(page);
     const pageRef = doc(db, 'projects', project.id, 'pages', page.id);
     
-    updateDocumentNonBlocking(pageRef, {
+    await updateDoc(pageRef, {
       qaStatus: result.status,
       qaIssues: result.issues,
       contentScore: result.score,
@@ -112,6 +111,7 @@ export default function PreviewScreen({ project }: { project: any }) {
     });
 
     toast({ title: "QA Complete", description: `Found ${result.issues.length} issues. Score: ${result.score}%` });
+    if (activePage?.id === page.id) setActivePage({ ...page, qaStatus: result.status, qaIssues: result.issues, contentScore: result.score });
   };
 
   const handleAutoFix = async (page: any) => {
@@ -194,10 +194,9 @@ export default function PreviewScreen({ project }: { project: any }) {
   const filteredPages = pages?.filter(p => 
     p.seoTitle.toLowerCase().includes(filter.toLowerCase()) || 
     p.type.toLowerCase().includes(filter.toLowerCase()) ||
-    (filter.toLowerCase() === 'stale' && p.isStale)
+    (filter.toLowerCase() === 'stale' && p.isStale) ||
+    (filter.toLowerCase() === 'broken' && p.qaStatus === 'NEEDS_FIX')
   ) || [];
-
-  const remainingBudget = 5 - (project.aiUsage?.dailyRepairCount || 0);
 
   if (isLoading) return <div className="py-20 text-center"><Loader2 className="animate-spin h-8 w-8 mx-auto text-primary" /></div>;
 
@@ -207,7 +206,7 @@ export default function PreviewScreen({ project }: { project: any }) {
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input 
-            placeholder="Search pages or 'stale'..." 
+            placeholder="Search pages or 'stale'/'broken'..." 
             className="pl-9 rounded-xl"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -261,7 +260,7 @@ export default function PreviewScreen({ project }: { project: any }) {
                   <div className="flex items-center gap-2">
                     <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                       <div 
-                        className={`h-full rounded-full ${page.contentScore >= 80 ? 'bg-green-500' : page.contentScore >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} 
+                        className={`h-full rounded-full ${page.contentScore >= 80 ? 'bg-green-500' : page.contentScore >= 50 ? 'bg-amber-500' : 'bg-destructive'}`} 
                         style={{ width: `${page.contentScore || 0}%` }}
                       />
                     </div>
@@ -307,6 +306,27 @@ export default function PreviewScreen({ project }: { project: any }) {
                             </div>
                             
                             <ScrollArea className="flex-1 p-8 bg-white">
+                              {/* QA Audit Panel */}
+                              {activePage.qaIssues && activePage.qaIssues.length > 0 && (
+                                <div className="mb-8 p-6 bg-destructive/5 border border-destructive/20 rounded-3xl space-y-4">
+                                  <div className="flex items-center gap-2 text-destructive">
+                                    <AlertCircle className="h-5 w-5" />
+                                    <h4 className="text-sm font-black uppercase tracking-widest">Quality Audit: {activePage.qaIssues.length} Issues Found</h4>
+                                  </div>
+                                  <div className="grid gap-3">
+                                    {activePage.qaIssues.map((issue: any, i: number) => (
+                                      <div key={i} className="flex gap-3 text-xs p-3 bg-white rounded-xl border border-destructive/10">
+                                        <Badge variant="outline" className="h-5 rounded-full px-2 text-[8px] bg-destructive/10 text-destructive uppercase font-bold">{issue.severity}</Badge>
+                                        <p className="font-medium text-slate-700">{issue.message}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <Button className="w-full bg-destructive text-white hover:bg-destructive/90 rounded-xl font-bold h-10" onClick={() => handleAutoFix(activePage)}>
+                                    <Hammer className="mr-2 h-4 w-4" /> Attempt Deterministic Fix
+                                  </Button>
+                                </div>
+                              )}
+
                               {activePage.isStale && (
                                 <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex gap-3 text-amber-800">
                                   <AlertTriangle className="h-5 w-5 shrink-0" />
@@ -316,6 +336,7 @@ export default function PreviewScreen({ project }: { project: any }) {
                                   </div>
                                 </div>
                               )}
+
                               <div className="max-w-2xl mx-auto space-y-12">
                                 <div className="space-y-6 border-b pb-8 relative group">
                                    <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -422,7 +443,7 @@ export default function PreviewScreen({ project }: { project: any }) {
 function StatusChip({ status }: { status: string }) {
   const styles: Record<string, string> = {
     'OK': 'bg-green-500/10 text-green-600 border-green-200',
-    'NEEDS_FIX': 'bg-amber-500/10 text-amber-600 border-amber-200',
+    'NEEDS_FIX': 'bg-destructive/10 text-destructive border-destructive/20',
     'FIXED': 'bg-blue-500/10 text-blue-600 border-blue-200',
     'Draft': 'bg-slate-100 text-slate-600 border-slate-200'
   };

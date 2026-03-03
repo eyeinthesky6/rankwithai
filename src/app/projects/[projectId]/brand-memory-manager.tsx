@@ -1,13 +1,13 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, Save, Loader2, Plus, X, AlertCircle } from "lucide-react";
+import { Sparkles, Save, Loader2, Plus, X, AlertCircle, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { suggestBrandMemory } from "@/ai/flows/suggest-brand-memory-flow";
@@ -16,6 +16,7 @@ import { doc, updateDoc, collection, getDocs, query, writeBatch } from "firebase
 
 export default function BrandMemoryManager({ project }: { project: any }) {
   const [loading, setLoading] = useState(false);
+  const [autoSaving, setAutoSaving] = useState(false);
   const [memory, setMemory] = useState(project.brandMemory || {
     companyName: project.name || '',
     services: [],
@@ -49,20 +50,18 @@ export default function BrandMemoryManager({ project }: { project: any }) {
     }
   };
 
-  const handleSave = async () => {
-    setLoading(true);
+  const persistIdentity = useCallback(async (currentMemory: any) => {
+    setAutoSaving(true);
     try {
-      const currentHash = JSON.stringify(memory).split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0).toString();
+      const currentHash = JSON.stringify(currentMemory).split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0).toString();
       const docRef = doc(db, 'projects', project.id);
       
-      // Update Project
       await updateDoc(docRef, {
-        brandMemory: memory,
-        lastGenerationHash: currentHash,
-        name: memory.companyName
+        brandMemory: currentMemory,
+        name: currentMemory.companyName
       });
 
-      // Event-Driven Stale Detection (Model 2)
+      // Stale Detection logic
       const pagesSnap = await getDocs(query(collection(db, 'projects', project.id, 'pages')));
       const batch = writeBatch(db);
       let staleCount = 0;
@@ -72,7 +71,7 @@ export default function BrandMemoryManager({ project }: { project: any }) {
         if (pageData.brandMemoryHash !== currentHash) {
           batch.update(pageDoc.ref, {
             isStale: true,
-            staleReason: "Brand memory updated",
+            staleReason: "Brand identity changed",
             staleAt: new Date().toISOString()
           });
           staleCount++;
@@ -82,19 +81,23 @@ export default function BrandMemoryManager({ project }: { project: any }) {
       if (staleCount > 0) {
         await batch.commit();
       }
-
-      toast({ 
-        title: "Identity Saved", 
-        description: staleCount > 0 
-          ? `Changes saved. ${staleCount} pages marked as stale for manual review.` 
-          : "Identity updated." 
-      });
     } catch (e) {
-      toast({ title: "Save Failed", description: "Could not persist identity changes.", variant: "destructive" });
+      console.error("Auto-save failed", e);
     } finally {
-      setLoading(false);
+      setAutoSaving(false);
     }
-  };
+  }, [db, project.id]);
+
+  // Debounced auto-save
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (JSON.stringify(memory) !== JSON.stringify(project.brandMemory)) {
+        persistIdentity(memory);
+      }
+    }, 2000);
+
+    return () => clearTimeout(handler);
+  }, [memory, project.brandMemory, persistIdentity]);
 
   const updateList = (field: 'services' | 'industries' | 'locations', value: string, index?: number, remove = false) => {
     const newList = [...(memory[field] || [])];
@@ -122,15 +125,24 @@ export default function BrandMemoryManager({ project }: { project: any }) {
               Verified Strategy
             </Badge>
           )}
+          {autoSaving ? (
+            <span className="text-[10px] font-bold text-muted-foreground flex items-center animate-pulse">
+              <Loader2 className="h-3 w-3 animate-spin mr-1" /> AUTO-SAVING...
+            </span>
+          ) : (
+            <span className="text-[10px] font-bold text-green-600/60 flex items-center">
+              <CheckCircle className="h-3 w-3 mr-1" /> SYNCED
+            </span>
+          )}
         </div>
         <div className="flex gap-3 w-full sm:w-auto">
           <Button onClick={handleSuggest} variant="outline" className="flex-1 sm:flex-none font-bold rounded-xl" disabled={loading}>
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4 text-primary" />}
             Analyze with AI
           </Button>
-          <Button onClick={handleSave} className="flex-1 sm:flex-none font-bold rounded-xl shadow-lg shadow-primary/20" disabled={loading}>
+          <Button onClick={() => persistIdentity(memory)} className="flex-1 sm:flex-none font-bold rounded-xl shadow-lg shadow-primary/20" disabled={loading || autoSaving}>
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Save Identity
+            Force Save
           </Button>
         </div>
       </div>
