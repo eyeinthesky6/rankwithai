@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Sparkles, ShieldCheck, Zap, Globe, ArrowRight, BarChart3, ChevronRight, LayoutGrid } from 'lucide-react';
+import { Sparkles, ShieldCheck, Zap, Globe, ArrowRight, BarChart3, ChevronRight, LayoutGrid, CreditCard } from 'lucide-react';
 import { useUser, initiateAnonymousSignIn, useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -27,21 +27,20 @@ export default function LandingPage() {
     }
   };
 
-  // Redirect to dashboard if user logs in while on this page
-  useEffect(() => {
-    if (user && !isUserLoading) {
-      // Optional: auto-redirect
-    }
-  }, [user, isUserLoading]);
-
   return (
-    <div className="flex-1 flex flex-col hero-gradient">
+    <div className="flex-1 flex flex-col hero-gradient selection:bg-primary/10">
       {/* Navigation */}
       <nav className="border-b bg-background/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-black text-xl tracking-tighter text-primary">
-            <Sparkles className="h-6 w-6" />
-            RANKWITHAI
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-2 font-black text-xl tracking-tighter text-primary">
+              <Sparkles className="h-6 w-6" />
+              RANKWITHAI
+            </div>
+            <div className="hidden md:flex items-center gap-6">
+              <Link href="/pricing" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Pricing</Link>
+              <a href="#" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Docs</a>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
@@ -80,9 +79,11 @@ export default function LandingPage() {
             >
               Launch My Engine <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button variant="outline" size="lg" className="h-14 px-10 text-lg font-bold rounded-2xl">
-              View Sample Feed
-            </Button>
+            <Link href="/pricing">
+              <Button variant="outline" size="lg" className="h-14 px-10 text-lg font-bold rounded-2xl">
+                View Pricing <CreditCard className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
           </div>
         </section>
 
@@ -143,10 +144,9 @@ export default function LandingPage() {
             RANKWITHAI
           </div>
           <div className="flex items-center gap-8 text-sm font-medium text-muted-foreground">
-            <a href="#" className="hover:text-primary">Docs</a>
-            <a href="#" className="hover:text-primary">Privacy</a>
-            <a href="#" className="hover:text-primary">Terms</a>
-            <a href="https://github.com" target="_blank" className="hover:text-primary">GitHub</a>
+            <Link href="/pricing" className="hover:text-primary">Pricing</Link>
+            <a href="#" className="hover:text-primary transition-colors">Privacy</a>
+            <a href="#" className="hover:text-primary transition-colors">Terms</a>
           </div>
           <div className="text-xs text-muted-foreground font-mono">
             &copy; {new Date().getFullYear()} rankwithai engine

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -11,6 +12,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, doc, setDoc, deleteDoc, serverTimestamp, query, limit } from "firebase/firestore";
 import { verifyDomainDns } from "@/ai/flows/verify-domain-dns";
 import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 export default function CustomDomainManager({ project }: { project: any }) {
   const [domainInput, setDomainInput] = useState('');
@@ -148,9 +150,11 @@ export default function CustomDomainManager({ project }: { project: any }) {
               Custom Domain support is currently locked. Upgrade your project to white-label your content feeds.
             </p>
           </div>
-          <Button variant="outline" className="border-amber-200 text-amber-700 font-bold rounded-xl h-10" onClick={() => toast({ title: "Pro Tiers coming soon!" })}>
-            View Pricing
-          </Button>
+          <Link href="/pricing">
+            <Button variant="outline" className="border-amber-200 text-amber-700 font-bold rounded-xl h-10 w-full sm:w-auto">
+              View Pricing & Upgrade
+            </Button>
+          </Link>
         </div>
       )}
 

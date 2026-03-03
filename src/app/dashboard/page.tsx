@@ -6,7 +6,7 @@ import { useCollection, useMemoFirebase, useFirestore, useUser } from '@/firebas
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Globe, Briefcase, ChevronRight, LayoutGrid, Zap, Loader2, Sparkles, User as UserIcon, AlertTriangle, AlertCircle } from 'lucide-react';
+import { PlusCircle, Globe, Briefcase, ChevronRight, LayoutGrid, Zap, Loader2, Sparkles, User as UserIcon, AlertTriangle, AlertCircle, CreditCard } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { redirect } from 'next/navigation';
@@ -43,10 +43,16 @@ export default function Dashboard() {
     <div className="min-h-screen flex flex-col bg-background">
       <nav className="border-b bg-background/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 font-black text-xl tracking-tighter text-primary">
-            <Sparkles className="h-5 w-5" />
-            RANKWITHAI
-          </Link>
+          <div className="flex items-center gap-8">
+            <Link href="/" className="flex items-center gap-2 font-black text-xl tracking-tighter text-primary">
+              <Sparkles className="h-5 w-5" />
+              RANKWITHAI
+            </Link>
+            <div className="hidden md:flex items-center gap-6">
+              <Link href="/dashboard" className="text-sm font-bold text-primary">Overview</Link>
+              <Link href="/pricing" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Pricing</Link>
+            </div>
+          </div>
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-2 text-xs font-bold text-muted-foreground px-3 py-1 bg-muted rounded-full">
               <UserIcon className="h-3 w-3" />
@@ -63,12 +69,20 @@ export default function Dashboard() {
             <h2 className="text-3xl font-black tracking-tighter">My Projects</h2>
             <p className="text-muted-foreground font-medium">Manage your B2B content feeds and generation runs.</p>
           </div>
-          <Link href="/projects/new">
-            <Button className="font-bold rounded-xl shadow-lg shadow-primary/20 h-11 px-6">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              New Project
-            </Button>
-          </Link>
+          <div className="flex gap-3">
+            <Link href="/pricing">
+              <Button variant="outline" className="font-bold rounded-xl h-11 px-6">
+                <CreditCard className="mr-2 h-4 w-4" />
+                Billing
+              </Button>
+            </Link>
+            <Link href="/projects/new">
+              <Button className="font-bold rounded-xl shadow-lg shadow-primary/20 h-11 px-6">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                New Project
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
