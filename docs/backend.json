@@ -69,9 +69,9 @@
           }
         },
         "faqs": { "type": "array", "items": { "type": "object" } },
-        "internalLinks": { "type": "array", "items": { "type": "string" } },
         "createdAt": { "type": "string", "format": "date-time" },
-        "brandMemoryHash": { "type": "string" }
+        "brandMemoryHash": { "type": "string" },
+        "version": { "type": "number" }
       },
       "required": ["slug", "type", "seoTitle", "metaDescription", "h1", "sections", "createdAt"]
     },
@@ -88,7 +88,8 @@
         "generatedCount": { "type": "number" },
         "aiCalls": { "type": "number" },
         "tokensUsed": { "type": "number" },
-        "errors": { "type": "array", "items": { "type": "string" } }
+        "errors": { "type": "array", "items": { "type": "string" } },
+        "brandMemoryHash": { "type": "string" }
       }
     },
     "CopilotSession": {
@@ -100,7 +101,8 @@
         "projectId": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "status": { "type": "string", "enum": ["active", "completed"] },
-        "lastDraft": { "type": "object" }
+        "lastDraft": { "type": "object" },
+        "aiCallCount": { "type": "number" }
       }
     },
     "CopilotMessage": {
