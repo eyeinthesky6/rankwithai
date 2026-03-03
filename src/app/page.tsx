@@ -1,128 +1,140 @@
+
 'use client';
 
 import Link from 'next/link';
-import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Globe, Briefcase, ChevronRight, LayoutGrid, Zap, Loader2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { Sparkles, ShieldCheck, Zap, Globe, ArrowRight, BarChart3, ChevronRight, LayoutGrid } from 'lucide-react';
+import { useUser, initiateAnonymousSignIn, useAuth } from '@/firebase';
 
-export default function Dashboard() {
-  const db = useFirestore();
-  const ownerId = "anonymous-user"; // Simplified for MVP
+export default function LandingPage() {
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
 
-  const projectsQuery = useMemoFirebase(() => {
-    return query(
-      collection(db, 'projects'),
-      where('ownerId', '==', ownerId),
-      orderBy('createdAt', 'desc')
-    );
-  }, [db, ownerId]);
-
-  const { data: projects, isLoading } = useCollection(projectsQuery);
-
-  if (isLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const handleStart = () => {
+    if (!user) {
+      initiateAnonymousSignIn(auth);
+    }
+  };
 
   return (
-    <div className="flex-1 space-y-8 p-8 pt-6 max-w-7xl mx-auto w-full">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-primary">AI Feed Engine (Lite)</h2>
-          <p className="text-muted-foreground">Manage your content projects and generated feeds.</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Link href="/projects/new">
-            <Button className="bg-secondary hover:bg-secondary/90 text-white">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              New Project
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {!projects || projects.length === 0 ? (
-          <Card className="col-span-full border-dashed p-12 text-center bg-transparent">
-            <div className="flex flex-col items-center gap-2">
-              <div className="p-4 bg-primary/10 rounded-full mb-4">
-                <LayoutGrid className="h-12 w-12 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold">No projects yet</h3>
-              <p className="text-muted-foreground max-w-xs mx-auto">
-                Create your first project to start generating AI-optimized content feeds.
-              </p>
-              <Link href="/projects/new" className="mt-4">
-                <Button variant="outline">Get Started</Button>
+    <div className="flex-1 flex flex-col hero-gradient">
+      {/* Navigation */}
+      <nav className="border-b bg-background/50 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-black text-xl tracking-tighter text-primary">
+            <Sparkles className="h-6 w-6" />
+            RANKWITHAI
+          </div>
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            {user ? (
+              <Link href="/dashboard">
+                <Button size="sm" className="font-bold">Dashboard</Button>
               </Link>
-            </div>
-          </Card>
-        ) : (
-          projects.map((project: any) => (
-            <Card key={project.id} className="overflow-hidden transition-all hover:shadow-lg group">
-              <CardHeader className="pb-4">
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-xl truncate">{project.name}</CardTitle>
-                  <Badge variant={project.lastGenerationHash ? "default" : "secondary"} className={project.lastGenerationHash ? "bg-green-100 text-green-800" : ""}>
-                    {project.lastGenerationHash ? "Generated" : "Draft"}
-                  </Badge>
-                </div>
-                <CardDescription className="flex items-center gap-1 mt-1">
-                  <Globe className="h-3 w-3" /> {project.website}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pb-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Briefcase className="h-4 w-4" />
-                  <span>{project.niche}</span>
-                </div>
-              </CardContent>
-              <CardFooter className="bg-muted/30 pt-4 flex justify-between items-center group-hover:bg-muted/50 transition-colors">
-                <span className="text-xs text-muted-foreground">
-                  Created {project.createdAt?.toDate ? project.createdAt.toDate().toLocaleDateString() : 'Recently'}
-                </span>
-                <Link href={`/projects/${project.id}`}>
-                  <Button variant="ghost" size="sm" className="group-hover:translate-x-1 transition-transform">
-                    Manage <ChevronRight className="ml-1 h-4 w-4" />
-                  </Button>
-                </Link>
-              </CardFooter>
-            </Card>
-          ))
-        )}
-      </div>
+            ) : (
+              <Button onClick={handleStart} size="sm" className="font-bold" disabled={isUserLoading}>
+                {isUserLoading ? 'Loading...' : 'Get Started'}
+              </Button>
+            )}
+          </div>
+        </div>
+      </nav>
 
-      <div className="mt-12 bg-primary/5 rounded-2xl p-8 border border-primary/10 flex flex-col md:flex-row items-center gap-8">
-        <div className="flex-1 space-y-4">
-          <div className="inline-flex items-center rounded-full bg-secondary/10 px-3 py-1 text-sm font-medium text-secondary">
-            <Zap className="mr-1 h-3.5 w-3.5" />
-            Quick Start Tip
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="max-w-7xl mx-auto px-6 pt-24 pb-32 text-center space-y-8">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest border border-primary/20">
+            <Zap className="h-3 w-3" />
+            Deterministic AI Content Generation
           </div>
-          <h3 className="text-2xl font-bold">Why AI Feeds?</h3>
-          <p className="text-muted-foreground leading-relaxed">
-            Generate dozens of high-quality SEO-optimized landing pages, service descriptions, and location-specific content based on your business's "Brand Memory". 
-            Export them as clean HTML or host them directly here.
+          <h1 className="text-5xl md:text-7xl font-black leading-[1.1] tracking-tighter max-w-4xl mx-auto">
+            Scale Your B2B Search Presence <span className="text-primary">Without Hallucinations.</span>
+          </h1>
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-medium">
+            The only SEO engine that respects your budget. Generate thousands of authoritative, service-location feeds using deterministic-first templates.
           </p>
-        </div>
-        <div className="w-full md:w-1/3 aspect-video bg-white rounded-xl shadow-inner border border-muted flex items-center justify-center p-6">
-          <div className="text-center">
-            <div className="font-mono text-sm text-primary/40 select-none">
-              &lt;html&gt;<br/>
-              &nbsp;&nbsp;&lt;head&gt;...&lt;/head&gt;<br/>
-              &nbsp;&nbsp;&lt;body&gt;<br/>
-              &nbsp;&nbsp;&nbsp;&nbsp;AI Generated Content<br/>
-              &nbsp;&nbsp;&lt;/body&gt;<br/>
-              &lt;/html&gt;
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
+            <Link href={user ? "/dashboard" : "#"}>
+              <Button onClick={handleStart} size="lg" className="h-14 px-10 text-lg font-bold rounded-2xl shadow-xl hover:scale-105 transition-all">
+                Launch My Engine <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <Button variant="outline" size="lg" className="h-14 px-10 text-lg font-bold rounded-2xl">
+              View Sample Feed
+            </Button>
+          </div>
+        </section>
+
+        {/* Features Grid */}
+        <section className="max-w-7xl mx-auto px-6 pb-32">
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="p-8 rounded-[2rem] bg-card border shadow-sm space-y-4 hover:shadow-md transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-bold">Identity-Safe Generation</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Our Brand Memory architecture ensures AI never invents certifications, fake numbers, or unverifiable claims.
+              </p>
+            </div>
+            <div className="p-8 rounded-[2rem] bg-card border shadow-sm space-y-4 hover:shadow-md transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary">
+                <Zap className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-bold">Deterministic Batching</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Reduce AI credit burn by 90%. We generate structure locally and use LLMs only for high-value body content.
+              </p>
+            </div>
+            <div className="p-8 rounded-[2rem] bg-card border shadow-sm space-y-4 hover:shadow-md transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+                <BarChart3 className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-bold">The Refresh Engine</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Connect search metrics to trigger auto-updates. If rank drops or CTR lags, the engine optimizes content automatically.
+              </p>
             </div>
           </div>
+        </section>
+
+        {/* Rolling CTA */}
+        <section className="bg-primary text-white py-24 relative overflow-hidden">
+          <div className="max-w-4xl mx-auto px-6 text-center space-y-8 relative z-10">
+            <h2 className="text-4xl md:text-5xl font-black tracking-tighter">Ready to dominate your niche?</h2>
+            <p className="text-primary-foreground/80 text-lg font-medium">
+              Join B2B leaders using rankwithai to build programmatic content that actually converts.
+            </p>
+            <Link href={user ? "/dashboard" : "#"}>
+              <Button onClick={handleStart} size="lg" variant="secondary" className="h-14 px-12 text-lg font-bold rounded-2xl bg-white text-primary hover:bg-slate-100">
+                Start Free Trial
+              </Button>
+            </Link>
+          </div>
+          <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+            <LayoutGrid className="w-full h-full" />
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t py-12 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
+          <div className="flex items-center gap-2 font-black text-lg tracking-tighter opacity-50">
+            <Sparkles className="h-5 w-5" />
+            RANKWITHAI
+          </div>
+          <div className="flex items-center gap-8 text-sm font-medium text-muted-foreground">
+            <a href="#" className="hover:text-primary">Docs</a>
+            <a href="#" className="hover:text-primary">Privacy</a>
+            <a href="#" className="hover:text-primary">Terms</a>
+            <a href="https://github.com" target="_blank" className="hover:text-primary">GitHub</a>
+          </div>
+          <div className="text-xs text-muted-foreground font-mono">
+            &copy; {new Date().getFullYear()} rankwithai engine
+          </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
