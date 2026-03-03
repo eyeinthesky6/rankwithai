@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { suggestBrandMemory } from "@/ai/flows/suggest-brand-memory-flow";
 import { useFirestore } from "@/firebase";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, collection, getDocs, query, writeBatch } from "firebase/firestore";
 
 export default function BrandMemoryManager({ project }: { project: any }) {
   const [loading, setLoading] = useState(false);
@@ -52,12 +52,43 @@ export default function BrandMemoryManager({ project }: { project: any }) {
   const handleSave = async () => {
     setLoading(true);
     try {
+      const currentHash = JSON.stringify(memory).split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0).toString();
       const docRef = doc(db, 'projects', project.id);
+      
+      // Update Project
       await updateDoc(docRef, {
         brandMemory: memory,
-        name: memory.companyName // Sync project name if changed
+        lastGenerationHash: currentHash,
+        name: memory.companyName
       });
-      toast({ title: "Identity Saved", description: "Brand memory is now locked for generation." });
+
+      // Event-Driven Stale Detection (Model 2)
+      const pagesSnap = await getDocs(query(collection(db, 'projects', project.id, 'pages')));
+      const batch = writeBatch(db);
+      let staleCount = 0;
+
+      pagesSnap.docs.forEach(pageDoc => {
+        const pageData = pageDoc.data();
+        if (pageData.brandMemoryHash !== currentHash) {
+          batch.update(pageDoc.ref, {
+            isStale: true,
+            staleReason: "Brand memory updated",
+            staleAt: new Date().toISOString()
+          });
+          staleCount++;
+        }
+      });
+
+      if (staleCount > 0) {
+        await batch.commit();
+      }
+
+      toast({ 
+        title: "Identity Saved", 
+        description: staleCount > 0 
+          ? `Changes saved. ${staleCount} pages marked as stale for manual review.` 
+          : "Identity updated." 
+      });
     } catch (e) {
       toast({ title: "Save Failed", description: "Could not persist identity changes.", variant: "destructive" });
     } finally {

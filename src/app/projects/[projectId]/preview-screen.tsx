@@ -3,12 +3,12 @@
 
 import { useState } from 'react';
 import { useCollection, useMemoFirebase, useFirestore } from "@/firebase";
-import { collection, query, orderBy, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, orderBy, doc, updateDoc, serverTimestamp, writeBatch } from "firebase/firestore";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Eye, CheckCircle, AlertTriangle, Hammer, Loader2, ExternalLink, RefreshCw, Sparkles, MessageSquare, History } from "lucide-react";
+import { Search, Eye, CheckCircle, AlertTriangle, Hammer, Loader2, ExternalLink, RefreshCw, Sparkles, MessageSquare, History, RefreshCcw } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
@@ -34,6 +34,7 @@ export default function PreviewScreen({ project }: { project: any }) {
   const [fixing, setFixing] = useState<string | null>(null);
   const [repairAction, setRepairAction] = useState<{ type: string, sectionIdx?: number } | null>(null);
   const [showRepairConfirm, setShowRepairConfirm] = useState(false);
+  const [applyingAll, setApplyingAll] = useState(false);
   
   const db = useFirestore();
   const { toast } = useToast();
@@ -43,6 +44,61 @@ export default function PreviewScreen({ project }: { project: any }) {
   }, [db, project.id]);
 
   const { data: pages, isLoading } = useCollection(pagesQuery);
+
+  const stalePages = pages?.filter(p => p.isStale) || [];
+
+  const handleApplyUpdates = async (page: any) => {
+    setFixing(page.id);
+    try {
+      const { fixedPage, summary } = autoFixPage(page, project.brandMemory);
+      const pageRef = doc(db, 'projects', project.id, 'pages', page.id);
+      
+      const newHash = JSON.stringify(project.brandMemory).split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0).toString();
+
+      await updateDoc(pageRef, {
+        ...fixedPage,
+        brandMemoryHash: newHash,
+        isStale: false,
+        lastFixSummary: `Applied Brand Memory Update: ${summary}`,
+        updatedAt: serverTimestamp()
+      });
+
+      toast({ title: "Updates Applied", description: `Page synchronized with latest brand identity.` });
+      if (activePage?.id === page.id) setActivePage({ ...fixedPage, isStale: false });
+    } catch (e) {
+      toast({ title: "Update Failed", variant: "destructive" });
+    } finally {
+      setFixing(null);
+    }
+  };
+
+  const handleApplyAllStale = async () => {
+    if (stalePages.length === 0) return;
+    setApplyingAll(true);
+    try {
+      const batch = writeBatch(db);
+      const newHash = JSON.stringify(project.brandMemory).split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0).toString();
+
+      stalePages.forEach(page => {
+        const { fixedPage, summary } = autoFixPage(page, project.brandMemory);
+        const pageRef = doc(db, 'projects', project.id, 'pages', page.id);
+        batch.update(pageRef, {
+          ...fixedPage,
+          brandMemoryHash: newHash,
+          isStale: false,
+          lastFixSummary: `Bulk Update: ${summary}`,
+          updatedAt: serverTimestamp()
+        });
+      });
+
+      await batch.commit();
+      toast({ title: "Bulk Sync Complete", description: `Synchronized ${stalePages.length} pages.` });
+    } catch (e) {
+      toast({ title: "Bulk Sync Failed", variant: "destructive" });
+    } finally {
+      setApplyingAll(false);
+    }
+  };
 
   const handleRunQA = async (page: any) => {
     const result = validatePageContent(page);
@@ -93,6 +149,7 @@ export default function PreviewScreen({ project }: { project: any }) {
         context: {
           currentTitle: activePage.seoTitle,
           currentMeta: activePage.metaDescription,
+          currentContent: activePage.sections.map((s:any) => s.content).join(' '),
           currentFaqs: activePage.faqs
         }
       };
@@ -125,7 +182,6 @@ export default function PreviewScreen({ project }: { project: any }) {
       await updateDoc(pageRef, updates);
       toast({ title: "AI Repair Successful", description: `Successfully applied ${repairAction.type} to ${activePage.slug}` });
       
-      // Refresh local active page state
       setActivePage({ ...activePage, ...updates });
     } catch (e: any) {
       toast({ title: "AI Repair Failed", description: e.message, variant: "destructive" });
@@ -138,7 +194,7 @@ export default function PreviewScreen({ project }: { project: any }) {
   const filteredPages = pages?.filter(p => 
     p.seoTitle.toLowerCase().includes(filter.toLowerCase()) || 
     p.type.toLowerCase().includes(filter.toLowerCase()) ||
-    p.qaStatus?.toLowerCase().includes(filter.toLowerCase())
+    (filter.toLowerCase() === 'stale' && p.isStale)
   ) || [];
 
   const remainingBudget = 5 - (project.aiUsage?.dailyRepairCount || 0);
@@ -151,15 +207,26 @@ export default function PreviewScreen({ project }: { project: any }) {
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input 
-            placeholder="Search pages or status..." 
+            placeholder="Search pages or 'stale'..." 
             className="pl-9 rounded-xl"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
         </div>
         <div className="flex gap-2">
+           {stalePages.length > 0 && (
+             <Button 
+               variant="outline" 
+               size="sm" 
+               className="bg-amber-50 text-amber-700 border-amber-200 font-bold rounded-xl"
+               onClick={handleApplyAllStale}
+               disabled={applyingAll}
+             >
+               {applyingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
+               Sync {stalePages.length} Stale Pages
+             </Button>
+           )}
            <Badge variant="outline" className="bg-green-500/5 text-green-600 border-green-200">OK: {pages?.filter(p => p.qaStatus === 'OK').length}</Badge>
-           <Badge variant="outline" className="bg-amber-500/5 text-amber-600 border-amber-200">Fix Required: {pages?.filter(p => p.qaStatus === 'NEEDS_FIX').length}</Badge>
         </div>
       </div>
 
@@ -175,7 +242,7 @@ export default function PreviewScreen({ project }: { project: any }) {
           </TableHeader>
           <TableBody>
             {filteredPages.map((page) => (
-              <TableRow key={page.id} className="group hover:bg-slate-50/50 transition-colors">
+              <TableRow key={page.id} className={`group hover:bg-slate-50/50 transition-colors ${page.isStale ? 'bg-amber-50/20' : ''}`}>
                 <TableCell className="py-4 pl-6">
                   <div className="flex flex-col">
                     <span className="font-bold text-sm truncate max-w-[300px]">{page.seoTitle.split('|')[0]}</span>
@@ -183,7 +250,12 @@ export default function PreviewScreen({ project }: { project: any }) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <StatusChip status={page.qaStatus || 'Draft'} />
+                  <div className="flex flex-col gap-1">
+                    <StatusChip status={page.qaStatus || 'Draft'} />
+                    {page.isStale && (
+                      <Badge variant="outline" className="w-fit text-[8px] bg-amber-500/10 text-amber-600 border-amber-200">STALE</Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -216,6 +288,12 @@ export default function PreviewScreen({ project }: { project: any }) {
                                 <p className="text-[10px] font-mono text-muted-foreground">ID: {activePage.id} | v{activePage.version || 1}</p>
                               </div>
                               <div className="flex gap-2">
+                                {activePage.isStale && (
+                                  <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg" onClick={() => handleApplyUpdates(activePage)} disabled={!!fixing}>
+                                    {fixing === activePage.id ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : <RefreshCcw className="h-3 w-3 mr-1.5" />}
+                                    Apply Brand Updates
+                                  </Button>
+                                )}
                                 <Button size="sm" variant="outline" className="font-bold rounded-lg" onClick={() => handleAutoFix(activePage)} disabled={!!fixing}>
                                   {fixing === activePage.id ? <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> : <Hammer className="h-3 w-3 mr-1.5 text-primary" />}
                                   Auto-Fix (0 AI)
@@ -229,6 +307,15 @@ export default function PreviewScreen({ project }: { project: any }) {
                             </div>
                             
                             <ScrollArea className="flex-1 p-8 bg-white">
+                              {activePage.isStale && (
+                                <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex gap-3 text-amber-800">
+                                  <AlertTriangle className="h-5 w-5 shrink-0" />
+                                  <div className="text-xs space-y-1">
+                                    <p className="font-bold">Content is Stale</p>
+                                    <p>Brand Identity was updated on {new Date(activePage.staleAt).toLocaleDateString()}. Apply updates to synchronize the content.</p>
+                                  </div>
+                                </div>
+                              )}
                               <div className="max-w-2xl mx-auto space-y-12">
                                 <div className="space-y-6 border-b pb-8 relative group">
                                    <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -259,12 +346,6 @@ export default function PreviewScreen({ project }: { project: any }) {
                                           setShowRepairConfirm(true);
                                         }}>
                                           <Sparkles className="h-3 w-3 mr-1.5 text-primary" /> Rewrite
-                                        </Button>
-                                        <Button variant="outline" size="sm" className="text-[10px] font-bold h-7 rounded-full bg-white" onClick={() => {
-                                          setRepairAction({ type: 'SHORTEN_SECTION', sectionIdx: i });
-                                          setShowRepairConfirm(true);
-                                        }}>
-                                          <Sparkles className="h-3 w-3 mr-1.5 text-primary" /> Shorten
                                         </Button>
                                       </div>
                                       <h2 className="text-2xl font-bold mb-4">{sec.h2}</h2>
@@ -298,28 +379,6 @@ export default function PreviewScreen({ project }: { project: any }) {
                                 )}
                               </div>
                             </ScrollArea>
-
-                            {activePage.qaIssues?.length > 0 && (
-                              <div className="p-6 bg-red-50 border-t z-20">
-                                <div className="flex items-center gap-2 text-red-700 font-bold text-xs mb-3">
-                                  <AlertTriangle className="h-4 w-4" /> Structural Audit Issues
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                  {activePage.qaIssues.map((issue: any, i: number) => (
-                                    <div key={i} className="text-[10px] bg-white p-2 rounded-lg border border-red-100 text-red-800">
-                                      {issue.message}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {activePage.lastFixSummary && (
-                              <div className="px-6 py-2 bg-slate-50 border-t flex items-center justify-between text-[10px] font-mono text-muted-foreground">
-                                <span className="flex items-center gap-1.5"><History className="h-3 w-3" /> Last change: {activePage.lastFixSummary}</span>
-                                <span>Updated: {activePage.updatedAt?.toDate?.() ? activePage.updatedAt.toDate().toLocaleString() : 'Just now'}</span>
-                              </div>
-                            )}
                           </div>
                         )}
                       </SheetContent>
@@ -342,16 +401,6 @@ export default function PreviewScreen({ project }: { project: any }) {
               <div className="p-4 bg-muted/50 rounded-2xl space-y-2 border">
                 <p className="text-xs font-bold text-slate-900 uppercase tracking-widest">Requested Action</p>
                 <p className="text-sm text-slate-600">{repairAction?.type.replaceAll('_', ' ')}</p>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs font-bold uppercase tracking-widest opacity-60">
-                  <span>Estimated Cost</span>
-                  <span className="text-primary">~500 Tokens</span>
-                </div>
-                <div className="flex justify-between text-xs font-bold uppercase tracking-widest opacity-60">
-                  <span>Daily Budget Remaining</span>
-                  <span className={remainingBudget <= 1 ? "text-destructive" : "text-green-600"}>{remainingBudget} / 5 calls</span>
-                </div>
               </div>
               <p className="text-[11px] italic leading-relaxed text-muted-foreground border-l-2 pl-4 border-primary/20">
                 AI repairs adhere strictly to your Brand Memory. No fake statistics or hallucinations will be introduced.

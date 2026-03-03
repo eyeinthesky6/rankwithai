@@ -21,6 +21,7 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
 
   const runRef = await addDoc(collection(db, 'projects', projectId, 'generationRuns'), {
     projectId,
+    ownerId,
     timestamp: serverTimestamp(),
     status: 'started',
     requestedCount,
@@ -90,7 +91,8 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
         brandMemoryHash: currentHash,
         contentScore: quality.score,
         validationErrors: quality.issues,
-        version: 1
+        version: 1,
+        isStale: false
       });
       totalGenerated++;
     }
@@ -128,6 +130,7 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
  */
 export async function checkAndLogRepairBudget(db: Firestore, project: any, actionType: string, pageSlug: string) {
   const projectId = project.id;
+  const ownerId = project.ownerId;
   const today = new Date().toISOString().split('T')[0];
   const usage = project.aiUsage || {};
 
@@ -139,6 +142,7 @@ export async function checkAndLogRepairBudget(db: Firestore, project: any, actio
   // Log usage
   await addDoc(collection(db, 'projects', projectId, 'aiUsageLogs'), {
     projectId,
+    ownerId,
     actionType,
     pageSlug,
     tokensEstimated: 500, // Static estimate for UX

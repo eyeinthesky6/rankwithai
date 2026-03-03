@@ -51,6 +51,7 @@
       "properties": {
         "id": { "type": "string" },
         "projectId": { "type": "string" },
+        "ownerId": { "type": "string" },
         "actionType": { "type": "string" },
         "tokensEstimated": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" },
@@ -64,6 +65,7 @@
       "properties": {
         "id": { "type": "string" },
         "projectId": { "type": "string" },
+        "ownerId": { "type": "string" },
         "requestedDomain": { "type": "string" },
         "status": { "type": "string", "enum": ["REQUESTED", "VERIFYING", "VERIFIED", "ACTIVE", "ERROR"] },
         "verificationToken": { "type": "string" },
@@ -73,7 +75,7 @@
         "activatedAt": { "type": "string", "format": "date-time" },
         "lastError": { "type": "string" }
       },
-      "required": ["projectId", "requestedDomain", "status", "verificationToken", "createdAt"]
+      "required": ["projectId", "ownerId", "requestedDomain", "status", "verificationToken", "createdAt"]
     },
     "BrandMemory": {
       "title": "BrandMemory",
@@ -131,6 +133,9 @@
         "updatedAt": { "type": "string", "format": "date-time" },
         "brandMemoryHash": { "type": "string" },
         "contentScore": { "type": "number" },
+        "isStale": { "type": "boolean" },
+        "staleReason": { "type": "string" },
+        "staleAt": { "type": "string", "format": "date-time" },
         "qaStatus": { "type": "string", "enum": ["OK", "NEEDS_FIX", "FIXED"] },
         "qaIssues": {
           "type": "array",
@@ -156,6 +161,7 @@
       "properties": {
         "id": { "type": "string" },
         "projectId": { "type": "string" },
+        "ownerId": { "type": "string" },
         "pageSlug": { "type": "string" },
         "name": { "type": "string" },
         "email": { "type": "string", "format": "email" },
@@ -163,7 +169,7 @@
         "status": { "type": "string", "enum": ["New", "Contacted", "Closed"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["projectId", "pageSlug", "name", "email", "createdAt"]
+      "required": ["projectId", "ownerId", "pageSlug", "name", "email", "createdAt"]
     },
     "GenerationRun": {
       "title": "GenerationRun",
@@ -172,6 +178,7 @@
       "properties": {
         "id": { "type": "string" },
         "projectId": { "type": "string" },
+        "ownerId": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" },
         "status": { "type": "string", "enum": ["started", "completed", "failed", "aborted"] },
         "requestedCount": { "type": "number" },
@@ -182,6 +189,42 @@
         "errors": { "type": "array", "items": { "type": "string" } },
         "brandMemoryHash": { "type": "string" },
         "abortReason": { "type": "string" }
+      }
+    },
+    "CopilotSession": {
+      "title": "CopilotSession",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "CopilotMessage": {
+      "title": "CopilotMessage",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sessionId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "assistant"] },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "CopilotDraft": {
+      "title": "CopilotDraft",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sessionId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "draftJson": { "type": "object" },
+        "confidenceNotes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "appliedAt": { "type": "string", "format": "date-time" }
       }
     }
   },
@@ -194,6 +237,9 @@
     "/projects/{projectId}/pages/{pageId}": { "schema": "Page", "description": "Generated pages." },
     "/projects/{projectId}/generationRuns/{runId}": { "schema": "GenerationRun", "description": "Generation history." },
     "/projects/{projectId}/leads/{leadId}": { "schema": "Lead", "description": "Captured leads." },
-    "/projects/{projectId}/aiUsageLogs/{logId}": { "schema": "AIUsageLog", "description": "Granular AI usage logs." }
+    "/projects/{projectId}/aiUsageLogs/{logId}": { "schema": "AIUsageLog", "description": "Granular AI usage logs." },
+    "/projects/{projectId}/copilotSessions/{sessionId}": { "schema": "CopilotSession", "description": "Copilot chat sessions." },
+    "/projects/{projectId}/copilotSessions/{sessionId}/messages/{messageId}": { "schema": "CopilotMessage", "description": "Copilot chat messages." },
+    "/projects/{projectId}/copilotSessions/{sessionId}/drafts/{draftId}": { "schema": "CopilotDraft", "description": "Copilot identity drafts." }
   }
 }

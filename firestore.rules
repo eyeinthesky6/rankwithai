@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -19,13 +20,10 @@ service cloud.firestore {
 
     /**
      * @description Rules for the Project entity and its subcollections.
-     * We enforce a denormalized ownership model where every document contains an 'ownerId'.
      */
     match /projects/{projectId} {
       
       // Project root document rules
-      // For list operations, Firestore requires the rule to match the query filter.
-      // We check resource == null to allow queries on empty collections.
       allow read: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
@@ -42,13 +40,6 @@ service cloud.firestore {
         );
       }
 
-      match /brandMemory/{brandMemoryId} {
-        allow read, write: if isSignedIn() && (
-          (resource == null && request.resource.data.ownerId == request.auth.uid) ||
-          (resource != null && resource.data.ownerId == request.auth.uid)
-        );
-      }
-
       match /generationRuns/{runId} {
         allow read, write: if isSignedIn() && (
           (resource == null && request.resource.data.ownerId == request.auth.uid) ||
@@ -58,9 +49,12 @@ service cloud.firestore {
 
       match /leads/{leadId} {
         // Public lead capture form needs to create documents
+        // We set ownerId in code, but here we allow public create
         allow create: if true;
         // Only the owner can view or manage leads
-        allow read, update, delete: if isOwner(resource.data.ownerId);
+        allow read, update, delete: if isSignedIn() && (
+          (resource != null && resource.data.ownerId == request.auth.uid)
+        );
       }
 
       match /customDomains/{domainId} {
@@ -75,6 +69,27 @@ service cloud.firestore {
           (resource == null && request.resource.data.ownerId == request.auth.uid) ||
           (resource != null && resource.data.ownerId == request.auth.uid)
         );
+      }
+
+      match /copilotSessions/{sessionId} {
+        allow read, write: if isSignedIn() && (
+          (resource == null && request.resource.data.ownerId == request.auth.uid) ||
+          (resource != null && resource.data.ownerId == request.auth.uid)
+        );
+        
+        match /messages/{messageId} {
+          allow read, write: if isSignedIn() && (
+            (resource == null && request.resource.data.ownerId == request.auth.uid) ||
+            (resource != null && resource.data.ownerId == request.auth.uid)
+          );
+        }
+        
+        match /drafts/{draftId} {
+          allow read, write: if isSignedIn() && (
+            (resource == null && request.resource.data.ownerId == request.auth.uid) ||
+            (resource != null && resource.data.ownerId == request.auth.uid)
+          );
+        }
       }
     }
   }
