@@ -1,33 +1,45 @@
+'use client';
 
-import { db } from "@/app/lib/db";
-import { notFound } from "next/navigation";
-import { Metadata } from "next";
-import { ArrowRight, ChevronRight, MessageSquare, ShieldCheck, Globe } from "lucide-react";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query, where, limit } from "firebase/firestore";
+import { useParams, notFound } from "next/navigation";
+import { ArrowRight, ChevronRight, MessageSquare, ShieldCheck, Globe, Loader2 } from "lucide-react";
 
-export async function generateMetadata({ params }: { params: { projectSlug: string, pageSlug: string } }): Promise<Metadata> {
-  const { projectSlug, pageSlug } = await params;
-  const project = await db.getProjectBySlug(projectSlug);
-  if (!project || !project.pages) return {};
-  
-  const page = project.pages.find((p: any) => p.slug === pageSlug);
-  if (!page) return {};
+export default function PublicFeedPage() {
+  const { projectSlug, pageSlug } = useParams() as { projectSlug: string, pageSlug: string };
+  const db = useFirestore();
 
-  return {
-    title: page.seoTitle,
-    description: page.metaDescription,
-  };
-}
+  const projectQuery = useMemoFirebase(() => query(
+    collection(db, 'projects'),
+    where('slug', '==', projectSlug),
+    limit(1)
+  ), [db, projectSlug]);
 
-export default async function PublicFeedPage({ params }: { params: { projectSlug: string, pageSlug: string } }) {
-  const { projectSlug, pageSlug } = await params;
-  const project = await db.getProjectBySlug(projectSlug);
+  const { data: projects, isLoading: projectLoading } = useCollection(projectQuery);
+  const project = projects?.[0];
 
-  if (!project || !project.pages) notFound();
+  const pagesQuery = useMemoFirebase(() => {
+    if (!project) return null;
+    return query(
+      collection(db, 'projects', project.id, 'pages'),
+      where('slug', '==', pageSlug),
+      limit(1)
+    );
+  }, [db, project, pageSlug]);
 
-  const page = project.pages.find((p: any) => p.slug === pageSlug);
-  if (!page) notFound();
+  const { data: pages, isLoading: pageLoading } = useCollection(pagesQuery);
+  const page = pages?.[0];
 
-  // Structured Data (Schema.org FAQ)
+  if (projectLoading || pageLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!project || !page) return notFound();
+
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -48,7 +60,6 @@ export default async function PublicFeedPage({ params }: { params: { projectSlug
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
       
-      {/* Navigation */}
       <nav className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="font-bold text-xl tracking-tight text-primary flex items-center gap-2">
@@ -64,7 +75,6 @@ export default async function PublicFeedPage({ params }: { params: { projectSlug
       </nav>
 
       <main className="max-w-4xl mx-auto px-6 py-16">
-        {/* Breadcrumb / Type */}
         <div className="flex items-center gap-3 mb-10">
           <span className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full">
             {page.type}
@@ -76,7 +86,6 @@ export default async function PublicFeedPage({ params }: { params: { projectSlug
           </div>
         </div>
 
-        {/* Hero Header */}
         <header className="mb-20 space-y-6">
           <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-[1.15]">
             {page.h1}
@@ -86,7 +95,6 @@ export default async function PublicFeedPage({ params }: { params: { projectSlug
           </p>
         </header>
 
-        {/* Structured Sections */}
         <div className="space-y-20">
           {page.sections.map((section: any, i: number) => (
             <section key={i} className="group">
@@ -101,7 +109,6 @@ export default async function PublicFeedPage({ params }: { params: { projectSlug
           ))}
         </div>
 
-        {/* Credibility Footer inside content */}
         {project.brandMemory?.certifications && (
           <div className="mt-20 p-8 bg-slate-50 rounded-3xl border border-slate-100 flex items-center gap-6">
             <div className="bg-white p-4 rounded-2xl shadow-sm">
@@ -114,7 +121,6 @@ export default async function PublicFeedPage({ params }: { params: { projectSlug
           </div>
         )}
 
-        {/* FAQs Section */}
         {page.faqs && page.faqs.length > 0 && (
           <section className="mt-32 pt-16 border-t border-slate-100">
             <div className="flex items-center gap-4 mb-12">
@@ -142,28 +148,6 @@ export default async function PublicFeedPage({ params }: { params: { projectSlug
           </section>
         )}
 
-        {/* Internal Links (Footer Links) */}
-        {page.internalLinks && page.internalLinks.length > 0 && (
-          <section className="mt-32 pt-16 border-t border-slate-100">
-            <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-8">Continue Exploring</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {page.internalLinks.map((linkSlug: string) => (
-                <a 
-                  key={linkSlug} 
-                  href={`/feed/${projectSlug}/${linkSlug}`}
-                  className="group flex items-center justify-between p-6 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-primary/5 hover:border-primary/20 transition-all"
-                >
-                  <span className="font-bold text-slate-700 group-hover:text-primary transition-colors capitalize">
-                    {linkSlug.replace(/-/g, ' ')}
-                  </span>
-                  <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                </a>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Final CTA */}
         <section className="mt-32 bg-primary text-white p-12 rounded-[3rem] text-center space-y-8 relative overflow-hidden shadow-2xl">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -mr-48 -mt-48" />
           <h2 className="text-4xl font-black tracking-tight relative z-10">Scale Your {project.niche} Strategy</h2>
@@ -181,7 +165,6 @@ export default async function PublicFeedPage({ params }: { params: { projectSlug
         </section>
       </main>
 
-      {/* Footer */}
       <footer className="bg-slate-900 text-white py-20 mt-32">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <div className="font-bold text-2xl mb-6 tracking-tighter">{project.name}</div>

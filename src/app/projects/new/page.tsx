@@ -1,12 +1,53 @@
-import { createProjectAction } from "@/app/lib/actions";
+'use client';
+
+import { useFirestore } from "@/firebase";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, Info } from "lucide-react";
+import { ChevronLeft, Info, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useToast } from "@/hooks/use-toast";
 
 export default function NewProject() {
+  const db = useFirestore();
+  const router = useRouter();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get('name') as string;
+    const website = formData.get('website') as string;
+    const niche = formData.get('niche') as string;
+    const ownerId = "anonymous-user";
+
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+    try {
+      const docRef = await addDoc(collection(db, 'projects'), {
+        name,
+        website,
+        niche,
+        ownerId,
+        slug,
+        createdAt: serverTimestamp(),
+      });
+      toast({ title: "Project Created", description: "Your new project has been initialized." });
+      router.push(`/projects/${docRef.id}`);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to create project." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex-1 flex items-center justify-center p-8 bg-background hero-gradient">
       <div className="w-full max-w-xl space-y-6">
@@ -23,7 +64,7 @@ export default function NewProject() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form action={createProjectAction} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Business Name</Label>
                 <Input id="name" name="name" placeholder="Acme Solutions Inc." required />
@@ -39,8 +80,8 @@ export default function NewProject() {
                   <Info className="h-3 w-3" /> Be specific for better AI suggestions later.
                 </p>
               </div>
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 mt-4">
-                Initialize Project
+              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 mt-4" disabled={loading}>
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Initialize Project"}
               </Button>
             </form>
           </CardContent>

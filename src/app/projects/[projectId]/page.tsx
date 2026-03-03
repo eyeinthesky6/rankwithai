@@ -1,8 +1,10 @@
+'use client';
 
-import { db } from "@/app/lib/db";
-import { notFound } from "next/navigation";
+import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
 import Link from "next/link";
-import { ChevronLeft, BrainCircuit, Sparkles, Files, Activity, Trash2, ExternalLink } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { ChevronLeft, Sparkles, Trash2, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,13 +12,42 @@ import BrandMemoryManager from "./brand-memory-manager";
 import FeedGenerator from "./feed-generator";
 import PageList from "./page-list";
 import RefreshEngine from "./refresh-engine";
-import { deleteProjectAction } from "@/app/lib/actions";
+import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { CopilotPanel } from "@/components/copilot/copilot-panel";
 
-export default async function ProjectDetails({ params }: { params: { projectId: string } }) {
-  const { projectId } = await params;
-  const project = await db.getProjectById(projectId);
+export default function ProjectDetails() {
+  const { projectId } = useParams() as { projectId: string };
+  const db = useFirestore();
+  const router = useRouter();
 
-  if (!project) notFound();
+  const projectRef = useMemoFirebase(() => doc(db, 'projects', projectId), [db, projectId]);
+  const { data: project, isLoading } = useDoc(projectRef);
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center space-y-4">
+        <h2 className="text-2xl font-bold">Project not found</h2>
+        <Link href="/">
+          <Button>Back to Dashboard</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const handleDelete = () => {
+    if (confirm("Are you sure you want to delete this project?")) {
+      deleteDocumentNonBlocking(projectRef);
+      router.push('/');
+    }
+  };
 
   return (
     <div className="flex-1 p-8 max-w-7xl mx-auto w-full space-y-8">
@@ -36,86 +67,82 @@ export default async function ProjectDetails({ params }: { params: { projectId: 
         </div>
         
         <div className="flex items-center gap-2">
-          <form action={deleteProjectAction.bind(null, project.id)}>
-            <Button variant="outline" size="icon" className="text-destructive hover:bg-destructive/10">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </form>
+          <Button variant="outline" size="icon" className="text-destructive hover:bg-destructive/10" onClick={handleDelete}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="memory" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 max-w-lg mb-8">
-          <TabsTrigger value="memory" className="flex items-center gap-2">
-            <BrainCircuit className="h-4 w-4" /> Memory
-          </TabsTrigger>
-          <TabsTrigger value="generate" className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4" /> Generate
-          </TabsTrigger>
-          <TabsTrigger value="feed" className="flex items-center gap-2">
-            <Files className="h-4 w-4" /> Pages
-          </TabsTrigger>
-          <TabsTrigger value="refresh" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" /> Refresh
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="memory" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Brand Memory</CardTitle>
-              <CardDescription>
-                Define the core identity of the business. This is used as the context for all AI generations.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <BrandMemoryManager project={project} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="generate" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Feed Generation</CardTitle>
-              <CardDescription>
-                Run the AI engine to generate 20-50 optimized pages based on your current Brand Memory.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FeedGenerator project={project} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="feed" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Generated Pages</CardTitle>
-              <CardDescription>
-                View and manage the generated SEO pages for this project.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <PageList project={project} />
-            </CardContent>
-          </Card>
-        </TabsContent>
+      <div className="grid lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          <Tabs defaultValue="memory" className="w-full">
+            <TabsList className="grid w-full grid-cols-4 mb-8">
+              <TabsTrigger value="memory">Memory</TabsTrigger>
+              <TabsTrigger value="generate">Generate</TabsTrigger>
+              <TabsTrigger value="feed">Pages</TabsTrigger>
+              <TabsTrigger value="refresh">Refresh</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="memory">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Brand Memory</CardTitle>
+                  <CardDescription>Identity context for all AI generations.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <BrandMemoryManager project={project} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="generate">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Feed Generation</CardTitle>
+                  <CardDescription>Batch-processed deterministic page generation.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FeedGenerator project={project} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="feed">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pages</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <PageList project={project} />
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-        <TabsContent value="refresh" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Refresh Engine</CardTitle>
-              <CardDescription>
-                Connect search metrics to trigger AI-powered content refreshes and meta-tag optimizations.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RefreshEngine project={project} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            <TabsContent value="refresh">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Refresh Engine</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RefreshEngine project={project} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        <div className="space-y-6">
+          <h3 className="font-bold text-sm text-muted-foreground flex items-center gap-2">
+            <Sparkles className="h-4 w-4" /> AI SETUP ASSISTANCE
+          </h3>
+          <CopilotPanel 
+            project={project} 
+            onApplyDraft={(draft) => {
+              console.log("Applying draft:", draft);
+            }} 
+          />
+        </div>
+      </div>
     </div>
   );
 }

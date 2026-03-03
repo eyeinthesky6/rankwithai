@@ -1,83 +1,111 @@
 
-import { SuggestBrandMemoryOutput } from "@/ai/flows/suggest-brand-memory-flow";
-import { GenerateFeedPagesOutput } from "@/ai/flows/generate-feed-pages";
-
-export interface PageHistory {
-  timestamp: string;
-  seoTitle: string;
-  metaDescription: string;
-  faqs: any[];
-  reason: string;
-}
-
-export interface RefreshLog {
-  id: string;
-  projectId: string;
-  timestamp: string;
-  pageSlug: string;
-  ruleTriggered: string;
-  metricValue: string;
-  actionTaken: string;
-}
-
-export interface ProjectPage extends any {
-  slug: string;
-  history?: PageHistory[];
-}
+import { initializeFirebase } from '@/firebase';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  getDocs, 
+  query, 
+  where, 
+  orderBy, 
+  deleteDoc, 
+  serverTimestamp,
+  Firestore,
+  addDoc
+} from 'firebase/firestore';
 
 export interface Project {
   id: string;
+  ownerId: string;
   name: string;
   slug: string;
   website: string;
   niche: string;
-  createdAt: number;
-  brandMemory?: SuggestBrandMemoryOutput;
-  pages?: ProjectPage[];
-  refreshLogs?: RefreshLog[];
+  createdAt: any;
+  brandMemory?: any;
+  lastGenerationHash?: string;
 }
 
-class MockDB {
-  private projects: Map<string, Project> = new Map();
+export interface ProjectPage {
+  id: string;
+  projectId: string;
+  ownerId: string;
+  slug: string;
+  type: string;
+  seoTitle: string;
+  metaDescription: string;
+  h1: string;
+  sections: any[];
+  faqs: any[];
+  internalLinks: string[];
+  createdAt: any;
+  brandMemoryHash: string;
+}
 
-  async getAllProjects(): Promise<Project[]> {
-    return Array.from(this.projects.values()).sort((a, b) => b.createdAt - a.createdAt);
+export class FirestoreDB {
+  private db: Firestore;
+
+  constructor() {
+    const { firestore } = initializeFirebase();
+    this.db = firestore;
   }
 
-  async getProjectById(id: string): Promise<Project | undefined> {
-    return this.projects.get(id);
+  async getAllProjects(ownerId: string): Promise<Project[]> {
+    const q = query(collection(this.db, 'projects'), where('ownerId', '==', ownerId), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
   }
 
-  async getProjectBySlug(slug: string): Promise<Project | undefined> {
-    return Array.from(this.projects.values()).find(p => p.slug === slug);
+  async getProjectById(id: string): Promise<Project | null> {
+    const docRef = doc(this.db, 'projects', id);
+    const snap = await getDoc(docRef);
+    return snap.exists() ? ({ id: snap.id, ...snap.data() } as Project) : null;
   }
 
-  async createProject(project: Omit<Project, 'id' | 'createdAt' | 'slug'>): Promise<Project> {
-    const id = Math.random().toString(36).substring(2, 9);
-    const slug = project.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const newProject: Project = {
-      ...project,
+  async getProjectBySlug(slug: string): Promise<Project | null> {
+    const q = query(collection(this.db, 'projects'), where('slug', '==', slug));
+    const snap = await getDocs(q);
+    return snap.empty ? null : ({ id: snap.docs[0].id, ...snap.docs[0].data() } as Project);
+  }
+
+  async createProject(data: Omit<Project, 'id' | 'createdAt' | 'slug'>): Promise<Project> {
+    const id = Math.random().toString(36).substring(7);
+    const slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const projectRef = doc(this.db, 'projects', id);
+    const project = {
+      ...data,
       id,
       slug,
-      createdAt: Date.now(),
+      createdAt: serverTimestamp(),
     };
-    this.projects.set(id, newProject);
-    return newProject;
+    await setDoc(projectRef, project);
+    return project as any;
   }
 
-  async updateProject(id: string, updates: Partial<Project>): Promise<Project> {
-    const project = this.projects.get(id);
-    if (!project) throw new Error("Project not found");
-    const updated = { ...project, ...updates };
-    this.projects.set(id, updated);
-    return updated;
+  async updateProject(id: string, updates: Partial<Project>): Promise<void> {
+    const projectRef = doc(this.db, 'projects', id);
+    await setDoc(projectRef, updates, { merge: true });
   }
 
   async deleteProject(id: string): Promise<void> {
-    this.projects.delete(id);
+    await deleteDoc(doc(this.db, 'projects', id));
+  }
+
+  async getPages(projectId: string): Promise<ProjectPage[]> {
+    const q = query(collection(this.db, 'projects', projectId, 'pages'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as ProjectPage));
+  }
+
+  async savePages(projectId: string, pages: any[]): Promise<void> {
+    for (const page of pages) {
+      const pageId = page.id || Math.random().toString(36).substring(7);
+      const pageRef = doc(this.db, 'projects', projectId, 'pages', pageId);
+      await setDoc(pageRef, { ...page, id: pageId, projectId, createdAt: serverTimestamp() });
+    }
   }
 }
 
-const globalForDb = global as unknown as { db: MockDB };
-export const db = globalForDb.db || new MockDB();
-if (process.env.NODE_ENV !== "production") globalForDb.db = db;
+export const db = new FirestoreDB();

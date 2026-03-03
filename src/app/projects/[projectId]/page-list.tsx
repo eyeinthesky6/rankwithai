@@ -1,18 +1,35 @@
 'use client';
 
-import { Project } from "@/app/lib/db";
+import { useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, orderBy } from "firebase/firestore";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, FileText, Search } from "lucide-react";
+import { ExternalLink, Search, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { useFirestore } from "@/firebase";
 
-export default function PageList({ project }: { project: Project }) {
+export default function PageList({ project }: { project: any }) {
   const [filter, setFilter] = useState('');
+  const db = useFirestore();
 
-  if (!project.pages || project.pages.length === 0) {
+  const pagesQuery = useMemoFirebase(() => {
+    return query(collection(db, 'projects', project.id, 'pages'), orderBy('createdAt', 'desc'));
+  }, [db, project.id]);
+
+  const { data: pages, isLoading } = useCollection(pagesQuery);
+
+  if (isLoading) {
+    return (
+      <div className="text-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+      </div>
+    );
+  }
+
+  if (!pages || pages.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground italic">
         No pages generated yet. Go to the "Generate" tab to start.
@@ -20,9 +37,9 @@ export default function PageList({ project }: { project: Project }) {
     );
   }
 
-  const filteredPages = project.pages.filter(p => 
-    p.title.toLowerCase().includes(filter.toLowerCase()) || 
-    p.pageType.toLowerCase().includes(filter.toLowerCase())
+  const filteredPages = pages.filter(p => 
+    p.seoTitle.toLowerCase().includes(filter.toLowerCase()) || 
+    p.type.toLowerCase().includes(filter.toLowerCase())
   );
 
   return (
@@ -49,26 +66,26 @@ export default function PageList({ project }: { project: Project }) {
           </TableHeader>
           <TableBody>
             {filteredPages.map((page) => (
-              <TableRow key={page.pageSlug}>
+              <TableRow key={page.id}>
                 <TableCell className="font-medium">
                   <div className="flex flex-col">
-                    <span className="truncate max-w-[280px]">{page.title}</span>
+                    <span className="truncate max-w-[280px]">{page.seoTitle}</span>
                     <span className="text-[10px] text-muted-foreground truncate max-w-[280px]">{page.metaDescription}</span>
                   </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className="text-[10px] whitespace-nowrap">
-                    {page.pageType}
+                    {page.type}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   <code className="text-[11px] bg-muted px-1.5 py-0.5 rounded truncate block max-w-[150px]">
-                    /{page.pageSlug}
+                    /{page.slug}
                   </code>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Link href={`/feed/${project.slug}/${page.pageSlug}`} target="_blank">
+                    <Link href={`/feed/${project.slug}/${page.slug}`} target="_blank">
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <ExternalLink className="h-4 w-4" />
                       </Button>

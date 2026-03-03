@@ -1,12 +1,34 @@
+'use client';
+
 import Link from 'next/link';
-import { db } from './lib/db';
+import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
+import { collection, query, where, orderBy } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Globe, Briefcase, ChevronRight, LayoutGrid, Zap } from 'lucide-react';
+import { PlusCircle, Globe, Briefcase, ChevronRight, LayoutGrid, Zap, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-export default async function Dashboard() {
-  const projects = await db.getAllProjects();
+export default function Dashboard() {
+  const db = useFirestore();
+  const ownerId = "anonymous-user"; // Simplified for MVP
+
+  const projectsQuery = useMemoFirebase(() => {
+    return query(
+      collection(db, 'projects'),
+      where('ownerId', '==', ownerId),
+      orderBy('createdAt', 'desc')
+    );
+  }, [db, ownerId]);
+
+  const { data: projects, isLoading } = useCollection(projectsQuery);
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-8 p-8 pt-6 max-w-7xl mx-auto w-full">
@@ -26,7 +48,7 @@ export default async function Dashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {projects.length === 0 ? (
+        {!projects || projects.length === 0 ? (
           <Card className="col-span-full border-dashed p-12 text-center bg-transparent">
             <div className="flex flex-col items-center gap-2">
               <div className="p-4 bg-primary/10 rounded-full mb-4">
@@ -42,13 +64,13 @@ export default async function Dashboard() {
             </div>
           </Card>
         ) : (
-          projects.map((project) => (
+          projects.map((project: any) => (
             <Card key={project.id} className="overflow-hidden transition-all hover:shadow-lg group">
               <CardHeader className="pb-4">
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-xl truncate">{project.name}</CardTitle>
-                  <Badge variant={project.pages ? "default" : "secondary"} className={project.pages ? "bg-green-100 text-green-800" : ""}>
-                    {project.pages ? `${project.pages.length} Pages` : "Draft"}
+                  <Badge variant={project.lastGenerationHash ? "default" : "secondary"} className={project.lastGenerationHash ? "bg-green-100 text-green-800" : ""}>
+                    {project.lastGenerationHash ? "Generated" : "Draft"}
                   </Badge>
                 </div>
                 <CardDescription className="flex items-center gap-1 mt-1">
@@ -63,7 +85,7 @@ export default async function Dashboard() {
               </CardContent>
               <CardFooter className="bg-muted/30 pt-4 flex justify-between items-center group-hover:bg-muted/50 transition-colors">
                 <span className="text-xs text-muted-foreground">
-                  Created {new Date(project.createdAt).toLocaleDateString()}
+                  Created {project.createdAt?.toDate ? project.createdAt.toDate().toLocaleDateString() : 'Recently'}
                 </span>
                 <Link href={`/projects/${project.id}`}>
                   <Button variant="ghost" size="sm" className="group-hover:translate-x-1 transition-transform">
