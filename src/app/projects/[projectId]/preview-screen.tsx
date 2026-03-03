@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -8,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Eye, CheckCircle, AlertTriangle, Hammer, Loader2, ExternalLink, RefreshCw, Sparkles, MessageSquare, History, RefreshCcw, AlertCircle } from "lucide-react";
+import { Search, Eye, CheckCircle, AlertTriangle, Hammer, Loader2, ExternalLink, RefreshCw, Sparkles, MessageSquare, History, RefreshCcw, AlertCircle, Scissors } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
@@ -368,6 +367,12 @@ export default function PreviewScreen({ project }: { project: any }) {
                                         }}>
                                           <Sparkles className="h-3 w-3 mr-1.5 text-primary" /> Rewrite
                                         </Button>
+                                        <Button variant="outline" size="sm" className="text-[10px] font-bold h-7 rounded-full bg-white" onClick={() => {
+                                          setRepairAction({ type: 'SHORTEN_SECTION', sectionIdx: i });
+                                          setShowRepairConfirm(true);
+                                        }}>
+                                          <Scissors className="h-3 w-3 mr-1.5 text-orange-500" /> Shorten
+                                        </Button>
                                       </div>
                                       <h2 className="text-2xl font-bold mb-4">{sec.h2}</h2>
                                       <div className="text-slate-600 leading-relaxed text-lg" dangerouslySetInnerHTML={{ __html: sec.content }} />
@@ -422,6 +427,10 @@ export default function PreviewScreen({ project }: { project: any }) {
               <div className="p-4 bg-muted/50 rounded-2xl space-y-2 border">
                 <p className="text-xs font-bold text-slate-900 uppercase tracking-widest">Requested Action</p>
                 <p className="text-sm text-slate-600">{repairAction?.type.replaceAll('_', ' ')}</p>
+              </div>
+              <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase px-1">
+                <span>Est. Cost: ~500 Tokens</span>
+                <span>Daily Usage: {project.aiUsage?.dailyRepairCount || 0} / 5</span>
               </div>
               <p className="text-[11px] italic leading-relaxed text-muted-foreground border-l-2 pl-4 border-primary/20">
                 AI repairs adhere strictly to your Brand Memory. No fake statistics or hallucinations will be introduced.

@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview AI flow for optimizing or repairing specific page parts.
@@ -37,9 +36,17 @@ const RefreshContentOutputSchema = z.object({
 
 export type RefreshContentOutput = z.infer<typeof RefreshContentOutputSchema>;
 
+// Internal schema for prompt Handlebars helpers
+const RefreshContentPromptInputSchema = RefreshContentInputSchema.extend({
+  isRewriteSeo: z.boolean(),
+  isRewriteSection: z.boolean(),
+  isShortenSection: z.boolean(),
+  isImproveFaqs: z.boolean(),
+});
+
 const refreshContentPrompt = ai.definePrompt({
   name: 'refreshContentPrompt',
-  input: { schema: RefreshContentInputSchema },
+  input: { schema: RefreshContentPromptInputSchema },
   output: { schema: RefreshContentOutputSchema },
   prompt: `You are an expert SEO editor for "{{brandMemory.companyName}}".
 Your task is to REPAIR or OPTIMIZE a specific part of a B2B page.
@@ -54,8 +61,8 @@ Identity Context:
 Current Context:
 {{#if context.currentTitle}}Title: {{{context.currentTitle}}}{{/if}}
 {{#if context.currentMeta}}Meta: {{{context.currentMeta}}}{{/if}}
-{{#if context.sectionHeading}}Section: {{{context.sectionHeading}}}{{/if}}
-{{#if context.currentContent}}Content: {{{context.currentContent}}}{{/if}}
+{{#if context.sectionHeading}}Section Heading: {{{context.sectionHeading}}}{{/if}}
+{{#if context.currentContent}}Current Body: {{{context.currentContent}}}{{/if}}
 
 INSTRUCTIONS:
 1. Adhere strictly to the requested Action Type.
@@ -64,19 +71,31 @@ INSTRUCTIONS:
 4. Keep output concise and professional.
 5. Ensure the tone matches: {{brandMemory.tone}}.
 
-{{#if (eq actionType "REWRITE_SEO")}}
+ACTION-SPECIFIC RULES:
+{{#if isRewriteSeo}}
 Rewrite the Title and Meta Description to be more enticing and clickable for B2B search intent.
-{{else if (eq actionType "REWRITE_SECTION")}}
+{{/if}}
+{{#if isRewriteSection}}
 Rewrite the body content for the section "{{context.sectionHeading}}". Make it more authoritative and helpful.
-{{else if (eq actionType "SHORTEN_SECTION")}}
-Summarize and clarify the content for "{{context.sectionHeading}}". Keep only the most impactful B2B insights.
-{{else if (eq actionType "IMPROVE_FAQS")}}
+{{/if}}
+{{#if isShortenSection}}
+Summarize and clarify the content for "{{context.sectionHeading}}". Keep only the most impactful B2B insights. Remove fluff.
+{{/if}}
+{{#if isImproveFaqs}}
 Improve the FAQ answers to be more specific to the business's differentiators.
 {{/if}}`,
 });
 
 export async function refreshContent(input: RefreshContentInput): Promise<RefreshContentOutput> {
-  const { output } = await refreshContentPrompt(input);
+  const promptInput = {
+    ...input,
+    isRewriteSeo: input.actionType === 'REWRITE_SEO',
+    isRewriteSection: input.actionType === 'REWRITE_SECTION',
+    isShortenSection: input.actionType === 'SHORTEN_SECTION',
+    isImproveFaqs: input.actionType === 'IMPROVE_FAQS',
+  };
+
+  const { output } = await refreshContentPrompt(promptInput);
   if (!output) throw new Error('Repair failed.');
   return output;
 }
