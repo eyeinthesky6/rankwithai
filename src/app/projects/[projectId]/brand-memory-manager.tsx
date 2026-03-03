@@ -1,26 +1,31 @@
+
 'use client';
 
-import { useState } from 'react';
-import { Project } from "@/app/lib/db";
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { suggestMemoryAction, updateBrandMemoryAction } from "@/app/lib/actions";
-import { Sparkles, Save, Loader2, Plus, X } from "lucide-react";
+import { Sparkles, Save, Loader2, Plus, X, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
-export default function BrandMemoryManager({ project }: { project: Project }) {
+export default function BrandMemoryManager({ project }: { project: any }) {
   const [loading, setLoading] = useState(false);
   const [memory, setMemory] = useState(project.brandMemory || {
+    companyName: project.name || '',
     services: [],
     industries: [],
     locations: [],
-    differentiators: [],
-    tone: '',
+    differentiators: '',
+    tone: 'Professional',
     faqs: []
   });
   const { toast } = useToast();
+
+  const isComplete = memory.companyName && memory.services.length > 0 && memory.differentiators && memory.tone;
 
   const handleSuggest = async () => {
     setLoading(true);
@@ -47,8 +52,8 @@ export default function BrandMemoryManager({ project }: { project: Project }) {
     }
   };
 
-  const updateList = (field: keyof typeof memory, value: string, index?: number, remove = false) => {
-    const newList = [...(memory[field] as any[])];
+  const updateList = (field: 'services' | 'industries' | 'locations', value: string, index?: number, remove = false) => {
+    const newList = [...(memory[field] || [])];
     if (remove) {
       newList.splice(index!, 1);
     } else if (index !== undefined) {
@@ -61,50 +66,89 @@ export default function BrandMemoryManager({ project }: { project: Project }) {
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-end gap-2">
-        <Button onClick={handleSuggest} variant="secondary" disabled={loading}>
-          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-          Suggest with AI
-        </Button>
-        <Button onClick={handleSave} variant="default" disabled={loading}>
-          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          Save Changes
-        </Button>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {!isComplete && (
+            <Badge variant="destructive" className="flex gap-1">
+              <AlertCircle className="h-3 w-3" /> Incomplete Profile
+            </Badge>
+          )}
+          {isComplete && (
+            <Badge variant="secondary" className="bg-green-100 text-green-800">Ready for AI Generation</Badge>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={handleSuggest} variant="secondary" disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+            Suggest with AI
+          </Button>
+          <Button onClick={handleSave} variant="default" disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Save Changes
+          </Button>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-8">
-        <div className="space-y-4">
-          <SectionTitle title="Services Offered" />
-          <ListInput list={memory.services} onUpdate={(v, i, r) => updateList('services', v, i, r)} placeholder="e.g. Managed IT Support" />
-
-          <SectionTitle title="Target Industries" />
-          <ListInput list={memory.industries} onUpdate={(v, i, r) => updateList('industries', v, i, r)} placeholder="e.g. Healthcare, Finance" />
-
-          <SectionTitle title="Service Locations" />
-          <ListInput list={memory.locations} onUpdate={(v, i, r) => updateList('locations', v, i, r)} placeholder="e.g. New York, Remote" />
-        </div>
-
-        <div className="space-y-4">
-          <SectionTitle title="Differentiators (USPs)" />
-          <ListInput list={memory.differentiators} onUpdate={(v, i, r) => updateList('differentiators', v, i, r)} placeholder="e.g. 24/7 Support with 15m response time" />
-
+        <div className="space-y-6">
           <div className="space-y-2">
-            <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Tone of Voice</Label>
+            <Label>Company Name</Label>
             <Input 
-              value={memory.tone} 
-              onChange={(e) => setMemory({ ...memory, tone: e.target.value })} 
-              placeholder="e.g. Professional, authoritative, yet approachable" 
+              value={memory.companyName} 
+              onChange={(e) => setMemory({ ...memory, companyName: e.target.value })} 
+              placeholder="Official Company Name" 
             />
           </div>
 
-          <div className="space-y-4 pt-4">
+          <div className="space-y-2">
+            <Label className="flex justify-between">Services Offered <span className="text-xs text-muted-foreground">(Min 1 required)</span></Label>
+            <ListInput list={memory.services} onUpdate={(v, i, r) => updateList('services', v, i, r)} placeholder="e.g. Managed IT Support" />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Target Industries</Label>
+            <ListInput list={memory.industries} onUpdate={(v, i, r) => updateList('industries', v, i, r)} placeholder="e.g. Healthcare, Finance" />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Service Locations</Label>
+            <ListInput list={memory.locations} onUpdate={(v, i, r) => updateList('locations', v, i, r)} placeholder="e.g. New York, Remote" />
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <Label>Differentiators (Required)</Label>
+            <Textarea 
+              value={memory.differentiators} 
+              onChange={(e) => setMemory({ ...memory, differentiators: e.target.value })} 
+              placeholder="What makes you stand out? (No fake stats)" 
+              className="min-h-[100px]"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Tone of Voice</Label>
+            <Select value={memory.tone} onValueChange={(v) => setMemory({ ...memory, tone: v })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select tone" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Professional">Professional</SelectItem>
+                <SelectItem value="Technical">Technical</SelectItem>
+                <SelectItem value="Conversational">Conversational</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-4 pt-4 border-t">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">FAQs</Label>
+              <Label>FAQs</Label>
               <Button size="sm" variant="outline" onClick={() => setMemory({ ...memory, faqs: [...memory.faqs, { question: '', answer: '' }] })}>
                 <Plus className="h-3 w-3 mr-1" /> Add FAQ
               </Button>
             </div>
-            {memory.faqs.map((faq, i) => (
+            {memory.faqs.map((faq: any, i: number) => (
               <div key={i} className="space-y-2 p-3 bg-muted/30 rounded-lg relative group">
                 <Button size="icon" variant="ghost" className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-white shadow-sm opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => {
                   const newFaqs = [...memory.faqs];
@@ -130,10 +174,6 @@ export default function BrandMemoryManager({ project }: { project: Project }) {
       </div>
     </div>
   );
-}
-
-function SectionTitle({ title }: { title: string }) {
-  return <Label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground block mb-2">{title}</Label>;
 }
 
 function ListInput({ list, onUpdate, placeholder }: { list: string[], onUpdate: (v: string, i?: number, r?: boolean) => void, placeholder: string }) {

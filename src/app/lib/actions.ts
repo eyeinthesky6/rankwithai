@@ -1,6 +1,7 @@
+
 'use server';
 
-import { db, Project } from "./db";
+import { db } from "./db";
 import { suggestBrandMemory, SuggestBrandMemoryInput } from "@/ai/flows/suggest-brand-memory-flow";
 import { generateFeedPages, GenerateFeedPagesInput } from "@/ai/flows/generate-feed-pages";
 import { revalidatePath } from "next/cache";
@@ -30,7 +31,7 @@ export async function suggestMemoryAction(projectId: string) {
   };
 
   const suggested = await suggestBrandMemory(input);
-  await db.updateProject(projectId, { brandMemory: suggested });
+  await db.updateProject(projectId, { brandMemory: { ...suggested, companyName: project.name } });
   
   revalidatePath(`/projects/${projectId}`);
   return suggested;
@@ -41,15 +42,13 @@ export async function updateBrandMemoryAction(projectId: string, brandMemory: an
   revalidatePath(`/projects/${projectId}`);
 }
 
-export async function generateFeedAction(projectId: string) {
+export async function generateFeedAction(projectId: string, count: number = 10) {
   const project = await db.getProjectById(projectId);
   if (!project || !project.brandMemory) throw new Error("Missing project or brand memory");
 
   const input: GenerateFeedPagesInput = {
-    projectName: project.name,
-    website: project.website,
-    niche: project.niche,
-    brandMemory: project.brandMemory,
+    brandMemory: project.brandMemory as any,
+    count,
   };
 
   const pages = await generateFeedPages(input);
