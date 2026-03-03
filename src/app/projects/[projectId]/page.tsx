@@ -5,7 +5,7 @@ import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft, Sparkles, Trash2, ExternalLink, Loader2, LayoutDashboard, Database, FileText, RefreshCw, Users, Eye } from "lucide-react";
+import { ChevronLeft, Sparkles, Trash2, ExternalLink, Loader2, LayoutDashboard, Database, FileText, RefreshCw, Users, Eye, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import PreviewScreen from "./preview-screen";
 import RefreshEngine from "./refresh-engine";
 import ProjectDashboard from "./project-dashboard";
 import LeadsPanel from "./leads-panel";
+import CustomDomainManager from "./custom-domain-manager";
 import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { CopilotPanel } from "@/components/copilot/copilot-panel";
 
@@ -79,13 +80,14 @@ export default function ProjectDetails() {
       <div className="grid lg:grid-cols-4 gap-8">
         <div className="lg:col-span-3">
           <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="grid w-full grid-cols-6 mb-8 bg-muted/50 p-1 rounded-xl">
-              <TabsTrigger value="dashboard" className="flex gap-2"><LayoutDashboard className="h-4 w-4" /> Summary</TabsTrigger>
-              <TabsTrigger value="memory" className="flex gap-2"><Database className="h-4 w-4" /> Memory</TabsTrigger>
-              <TabsTrigger value="generate" className="flex gap-2"><Sparkles className="h-4 w-4" /> Generate</TabsTrigger>
-              <TabsTrigger value="preview" className="flex gap-2"><Eye className="h-4 w-4" /> Preview</TabsTrigger>
-              <TabsTrigger value="refresh" className="flex gap-2"><RefreshCw className="h-4 w-4" /> Refresh</TabsTrigger>
-              <TabsTrigger value="leads" className="flex gap-2"><Users className="h-4 w-4" /> Leads</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-7 mb-8 bg-muted/50 p-1 rounded-xl">
+              <TabsTrigger value="dashboard" className="flex gap-2 text-[10px] md:text-xs"><LayoutDashboard className="h-3 w-3" /> Summary</TabsTrigger>
+              <TabsTrigger value="memory" className="flex gap-2 text-[10px] md:text-xs"><Database className="h-3 w-3" /> Memory</TabsTrigger>
+              <TabsTrigger value="generate" className="flex gap-2 text-[10px] md:text-xs"><Sparkles className="h-3 w-3" /> Generate</TabsTrigger>
+              <TabsTrigger value="preview" className="flex gap-2 text-[10px] md:text-xs"><Eye className="h-3 w-3" /> Preview</TabsTrigger>
+              <TabsTrigger value="domains" className="flex gap-2 text-[10px] md:text-xs"><Globe className="h-3 w-3" /> Domain</TabsTrigger>
+              <TabsTrigger value="refresh" className="flex gap-2 text-[10px] md:text-xs"><RefreshCw className="h-3 w-3" /> Refresh</TabsTrigger>
+              <TabsTrigger value="leads" className="flex gap-2 text-[10px] md:text-xs"><Users className="h-3 w-3" /> Leads</TabsTrigger>
             </TabsList>
             
             <TabsContent value="dashboard">
@@ -126,6 +128,10 @@ export default function ProjectDetails() {
                   <PreviewScreen project={project} />
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="domains">
+              <CustomDomainManager project={project} />
             </TabsContent>
 
             <TabsContent value="refresh">

@@ -16,6 +16,7 @@
         "brandMemory": { "$ref": "#/backend/entities/BrandMemory" },
         "lastGenerationHash": { "type": "string" },
         "templateVersion": { "type": "number" },
+        "customDomainEnabled": { "type": "boolean" },
         "aiUsage": {
           "type": "object",
           "properties": {
@@ -40,6 +41,24 @@
         }
       },
       "required": ["id", "ownerId", "name", "slug", "website", "niche", "createdAt"]
+    },
+    "CustomDomain": {
+      "title": "CustomDomain",
+      "description": "Configuration for hosting feeds on a user's custom subdomain.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "requestedDomain": { "type": "string" },
+        "status": { "type": "string", "enum": ["REQUESTED", "VERIFYING", "VERIFIED", "ACTIVE", "ERROR"] },
+        "verificationToken": { "type": "string" },
+        "verificationMethod": { "type": "string", "enum": ["TXT"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "verifiedAt": { "type": "string", "format": "date-time" },
+        "activatedAt": { "type": "string", "format": "date-time" },
+        "lastError": { "type": "string" }
+      },
+      "required": ["projectId", "requestedDomain", "status", "verificationToken", "createdAt"]
     },
     "BrandMemory": {
       "title": "BrandMemory",
@@ -156,6 +175,7 @@
   },
   "firestore": {
     "/projects/{projectId}": { "schema": "Project", "description": "Project root." },
+    "/projects/{projectId}/customDomains/{domainId}": { "schema": "CustomDomain", "description": "Custom domain settings." },
     "/projects/{projectId}/pages/{pageId}": { "schema": "Page", "description": "Generated pages." },
     "/projects/{projectId}/generationRuns/{runId}": { "schema": "GenerationRun", "description": "Generation history." },
     "/projects/{projectId}/leads/{leadId}": { "schema": "Lead", "description": "Captured leads." }
