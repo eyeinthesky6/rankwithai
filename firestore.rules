@@ -23,9 +23,9 @@ service cloud.firestore {
     match /projects/{projectId} {
       
       // Project root document rules
-      // Split read into get and list for more robust list filtering
-      allow get: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid);
-      allow list: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid);
+      // Publicly readable for slug lookups in the public feed
+      allow get: if true;
+      allow list: if true; 
       
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update: if isSignedIn() && resource.data.ownerId == request.auth.uid;

@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState } from 'react';
 import { useCollection, useMemoFirebase, useFirestore } from "@/firebase";
-import { collection, query, orderBy, doc, updateDoc, serverTimestamp, writeBatch } from "firebase/firestore";
+import { collection, query, orderBy, doc, updateDoc, serverTimestamp, writeBatch, arrayUnion } from "firebase/firestore";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,6 @@ export default function PreviewScreen({ project }: { project: any }) {
   const [fixing, setFixing] = useState<string | null>(null);
   const [repairAction, setRepairAction] = useState<{ type: string, sectionIdx?: number } | null>(null);
   const [showRepairConfirm, setShowRepairConfirm] = useState(false);
-  const [applyingAll, setApplyingAll] = useState(false);
   
   const db = useFirestore();
   const { toast } = useToast();
@@ -67,8 +67,8 @@ export default function PreviewScreen({ project }: { project: any }) {
     try {
       const { fixedPage, summary } = autoFixPage(page, project.brandMemory);
       const pageRef = doc(db, 'projects', project.id, 'pages', page.id);
+      const projectRef = doc(db, 'projects', project.id);
       
-      // Re-validate after fixing
       const finalQuality = validatePageContent(fixedPage);
       
       const finalPage = {
@@ -81,6 +81,17 @@ export default function PreviewScreen({ project }: { project: any }) {
       };
 
       await updateDoc(pageRef, finalPage);
+      
+      // Log deterministic fix activity
+      await updateDoc(projectRef, {
+        refreshLogs: arrayUnion({
+          id: Math.random().toString(36).substring(7),
+          timestamp: new Date().toISOString(),
+          pageSlug: page.slug,
+          ruleTriggered: 'Structural Audit',
+          actionTaken: 'AUTO_FIX'
+        })
+      });
 
       toast({ title: "Deterministic Fix Applied", description: summary });
       if (activePage?.id === page.id) setActivePage(finalPage);
@@ -96,6 +107,7 @@ export default function PreviewScreen({ project }: { project: any }) {
     try {
       const { fixedPage, summary } = autoFixPage(page, project.brandMemory);
       const pageRef = doc(db, 'projects', project.id, 'pages', page.id);
+      const projectRef = doc(db, 'projects', project.id);
       const newHash = JSON.stringify(project.brandMemory).split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0).toString();
 
       await updateDoc(pageRef, {
@@ -104,6 +116,17 @@ export default function PreviewScreen({ project }: { project: any }) {
         isStale: false,
         lastFixSummary: `Strategic Sync: ${summary}`,
         updatedAt: serverTimestamp()
+      });
+
+      // Log sync activity
+      await updateDoc(projectRef, {
+        refreshLogs: arrayUnion({
+          id: Math.random().toString(36).substring(7),
+          timestamp: new Date().toISOString(),
+          pageSlug: page.slug,
+          ruleTriggered: 'Identity Hash Mismatch',
+          actionTaken: 'STRATEGIC_SYNC'
+        })
       });
 
       toast({ title: "Strategy Synchronized" });
@@ -142,6 +165,7 @@ export default function PreviewScreen({ project }: { project: any }) {
 
       const result = await refreshContent(refreshInput);
       const pageRef = doc(db, 'projects', project.id, 'pages', activePage.id);
+      const projectRef = doc(db, 'projects', project.id);
       
       const updates: any = {
         updatedAt: serverTimestamp(),
@@ -160,6 +184,18 @@ export default function PreviewScreen({ project }: { project: any }) {
       }
 
       await updateDoc(pageRef, updates);
+
+      // Log AI repair activity
+      await updateDoc(projectRef, {
+        refreshLogs: arrayUnion({
+          id: Math.random().toString(36).substring(7),
+          timestamp: new Date().toISOString(),
+          pageSlug: activePage.slug,
+          ruleTriggered: 'Manual Optimization',
+          actionTaken: `AI_REPAIR_${repairAction.type}`
+        })
+      });
+
       toast({ title: "AI Repair Applied" });
       setActivePage({ ...activePage, ...updates });
     } catch (e: any) {
