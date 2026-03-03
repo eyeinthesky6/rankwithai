@@ -1,7 +1,6 @@
-
 /**
  * Deterministic Auto-Fix Engine.
- * Repairs structural issues without using AI calls.
+ * Repairs structural issues, resolves tokens, and reconciles links without AI.
  */
 
 import { generateSkeletons } from './templates';
@@ -15,69 +14,85 @@ export function autoFixPage(page: any, brandMemory: any): FixResult {
   const fixes: string[] = [];
   const fixedPage = JSON.parse(JSON.stringify(page)); // Deep clone
   
-  // 1. Heading Normalization (Single H1)
-  // Our templates already enforce this, but if a manual edit or bad AI batch happened:
+  // 1. Heading Normalization
   if (!fixedPage.h1 && fixedPage.seoTitle) {
     fixedPage.h1 = fixedPage.seoTitle.split('|')[0].trim();
-    fixes.push('Generated missing H1 from SEO title');
+    fixes.push('Generated H1 from SEO Title');
   }
 
   // 2. Token Replacement (Zero AI)
-  const tokens = {
+  // Maps all known template tokens to Brand Memory values
+  const tokens: Record<string, string> = {
     '{{service}}': brandMemory.services?.[0] || 'our services',
     '{{companyName}}': brandMemory.companyName || 'our company',
     '{{niche}}': brandMemory.niche || 'industry',
     '{{location}}': (page.context?.location) || brandMemory.locations?.[0] || 'your area',
-    '{{industry}}': (page.context?.industry) || brandMemory.industries?.[0] || 'your industry'
+    '{{industry}}': (page.context?.industry) || brandMemory.industries?.[0] || 'your industry',
+    '{{tone}}': brandMemory.tone || 'professional'
   };
 
-  const replaceInText = (text: string) => {
+  const replaceAllTokens = (text: string) => {
+    if (!text) return '';
     let newText = text;
     Object.entries(tokens).forEach(([token, value]) => {
-      if (newText.includes(token)) {
-        newText = newText.replaceAll(token, value);
-      }
+      newText = newText.split(token).join(value);
     });
     return newText;
   };
 
-  fixedPage.h1 = replaceInText(fixedPage.h1);
-  fixedPage.sections = fixedPage.sections.map((s: any) => ({
+  // Apply resolution to all content fields
+  fixedPage.h1 = replaceAllTokens(fixedPage.h1);
+  fixedPage.seoTitle = replaceAllTokens(fixedPage.seoTitle);
+  fixedPage.metaDescription = replaceAllTokens(fixedPage.metaDescription);
+  
+  fixedPage.sections = (fixedPage.sections || []).map((s: any) => ({
     ...s,
-    h2: replaceInText(s.h2),
-    content: replaceInText(s.content)
+    h2: replaceAllTokens(s.h2),
+    content: replaceAllTokens(s.content)
   }));
 
-  if (fixes.length === 0 && JSON.stringify(page) !== JSON.stringify(fixedPage)) {
-    fixes.push('Resolved template placeholders ({{service}}, etc.)');
+  // 3. Structural Rebuild (Restore missing sections from skeletons)
+  const allSkeletons = generateSkeletons(brandMemory, 100);
+  const originalSkeleton = allSkeletons.find(s => s.slug === page.slug);
+
+  if (originalSkeleton) {
+    // Ensure all internal links are reconciled
+    fixedPage.internalLinks = originalSkeleton.internalLinks || [];
+    
+    // Check for missing sections from the skeleton
+    originalSkeleton.sections.forEach(skelSection => {
+      const exists = fixedPage.sections.some((s: any) => s.h2.includes(skelSection.h2) || skelSection.h2.includes(s.h2));
+      if (!exists) {
+        fixedPage.sections.push({
+          h2: replaceAllTokens(skelSection.h2),
+          content: `<p>Strategic insights regarding ${replaceAllTokens(skelSection.h2)} for your ${brandMemory.niche} needs.</p>`
+        });
+        fixes.push(`Restored section: ${skelSection.h2}`);
+      }
+    });
   }
 
-  // 3. Structural Rebuild (If sections are missing)
-  if (!fixedPage.sections || fixedPage.sections.length < 2) {
-    // Attempt to find original skeleton to restore placeholders
-    const skeletons = generateSkeletons(brandMemory, 100);
-    const original = skeletons.find(s => s.slug === page.slug);
-    if (original) {
-      fixedPage.sections = original.sections.map(s => ({
-        h2: s.h2,
-        content: `<p>Detailed insights on ${s.h2.toLowerCase()} coming soon.</p>`
-      }));
-      fixes.push('Restored missing structural sections from templates');
-    }
-  }
-
-  // 4. FAQ Normalization
+  // 4. FAQ Sanitization
   if (fixedPage.faqs) {
-    fixedPage.faqs = fixedPage.faqs.filter((f: any) => f.question && f.answer);
+    fixedPage.faqs = fixedPage.faqs
+      .filter((f: any) => f.question && f.answer)
+      .map((f: any) => ({
+        question: replaceAllTokens(f.question),
+        answer: replaceAllTokens(f.answer)
+      }));
   }
 
-  // 5. Versioning
+  // 5. Metadata Update
   fixedPage.version = (page.version || 1) + 1;
   fixedPage.qaStatus = 'FIXED';
   fixedPage.updatedAt = new Date().toISOString();
 
+  const finalSummary = fixes.length > 0 
+    ? `Deterministic repairs: ${fixes.join(', ')}` 
+    : 'Structural normalization and token resolution performed.';
+
   return {
     fixedPage,
-    summary: fixes.length > 0 ? fixes.join(', ') : 'Structural normalization performed'
+    summary: finalSummary
   };
 }
