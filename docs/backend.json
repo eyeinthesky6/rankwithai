@@ -1,0 +1,287 @@
+{
+  "entities": {
+    "Project": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Project",
+      "type": "object",
+      "description": "Represents a business project for which AI-optimized content feeds are generated.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Project entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the business or project."
+        },
+        "projectSlug": {
+          "type": "string",
+          "description": "A URL-friendly slug for the project, used in public page routes."
+        },
+        "website": {
+          "type": "string",
+          "description": "The official website of the business.",
+          "format": "uri"
+        },
+        "niche": {
+          "type": "string",
+          "description": "The target market or industry niche of the business."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the project was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "projectSlug",
+        "website",
+        "niche",
+        "createdAt"
+      ]
+    },
+    "BrandMemory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BrandMemory",
+      "type": "object",
+      "description": "Stores the structured 'Brand Memory' data for a business project, used to inform AI content generation.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Brand Memory record."
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to the Project this brand memory belongs to. (Relationship: Project 1:1 BrandMemory)"
+        },
+        "companyName": {
+          "type": "string",
+          "description": "The official name of the company for which content is being generated."
+        },
+        "services": {
+          "type": "array",
+          "description": "A list of key services the company offers.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "industries": {
+          "type": "array",
+          "description": "A list of industries the company targets or operates within.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "locations": {
+          "type": "array",
+          "description": "A list of geographical locations relevant to the company's operations.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "differentiators": {
+          "type": "string",
+          "description": "Key aspects that differentiate the company from its competitors."
+        },
+        "certifications": {
+          "type": "array",
+          "description": "Any official certifications or accreditations held by the company.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tone": {
+          "type": "string",
+          "description": "The desired brand voice or tone for generated content (e.g., 'professional', 'friendly', 'authoritative')."
+        },
+        "faqsJson": {
+          "type": "string",
+          "description": "A JSON string containing an array of frequently asked questions and their answers, structured for AI use."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the brand memory was first created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the brand memory was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "projectId",
+        "companyName",
+        "services",
+        "industries",
+        "locations",
+        "differentiators",
+        "tone",
+        "faqsJson",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Page": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Page",
+      "type": "object",
+      "description": "Represents a single AI-generated content page, part of a project's content feed.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Page entity."
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to the Project this page belongs to. (Relationship: Project 1:N Page)"
+        },
+        "pageSlug": {
+          "type": "string",
+          "description": "A unique, URL-friendly slug for this specific page within its project."
+        },
+        "pageType": {
+          "type": "string",
+          "description": "The type or category of the generated page (e.g., 'Service + Location', 'Service + Industry', 'Buyer Question')."
+        },
+        "title": {
+          "type": "string",
+          "description": "The HTML title tag content for the page."
+        },
+        "metaDescription": {
+          "type": "string",
+          "description": "The SEO meta description content for the page."
+        },
+        "htmlContent": {
+          "type": "string",
+          "description": "The full HTML body content of the generated page."
+        },
+        "faqJson": {
+          "type": "string",
+          "description": "A JSON string containing FAQ structured data (Schema.org compliant) for the page."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the page was generated.",
+          "format": "date-time"
+        },
+        "version": {
+          "type": "number",
+          "description": "A version number for the page content, indicating its revision."
+        }
+      },
+      "required": [
+        "id",
+        "projectId",
+        "pageSlug",
+        "pageType",
+        "title",
+        "metaDescription",
+        "htmlContent",
+        "faqJson",
+        "createdAt",
+        "version"
+      ]
+    },
+    "GenerationRun": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GenerationRun",
+      "type": "object",
+      "description": "Records the details of each AI content generation event for a project.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Generation Run entity."
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to the Project for which this generation run occurred. (Relationship: Project 1:N GenerationRun)"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the generation run (e.g., 'pending', 'in-progress', 'completed', 'failed')."
+        },
+        "pageCount": {
+          "type": "number",
+          "description": "The number of pages successfully generated in this run."
+        },
+        "logs": {
+          "type": "string",
+          "description": "A JSON string containing detailed logs or error messages from the generation process."
+        },
+        "startedAt": {
+          "type": "string",
+          "description": "Timestamp when the generation run started.",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "description": "Timestamp when the generation run completed (or failed).",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "projectId",
+        "status",
+        "pageCount",
+        "logs",
+        "startedAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/projects/{projectId}",
+        "definition": {
+          "entityName": "Project",
+          "schema": {
+            "$ref": "#/backend/entities/Project"
+          },
+          "description": "Stores core details for each business project. Each document MUST include an 'ownerId' field containing the UID of the user who created it, for authorization. This enables secure QAPs and authorization independence."
+        }
+      },
+      {
+        "path": "/projects/{projectId}/brandMemory/{brandMemoryId}",
+        "definition": {
+          "entityName": "BrandMemory",
+          "schema": {
+            "$ref": "#/backend/entities/BrandMemory"
+          },
+          "description": "Contains the structured 'Brand Memory' data for a specific project. Each document MUST include the 'ownerId' field (denormalized from the parent Project) for authorization independence. The 'projectId' field is also denormalized within the document."
+        }
+      },
+      {
+        "path": "/projects/{projectId}/pages/{pageId}",
+        "definition": {
+          "entityName": "Page",
+          "schema": {
+            "$ref": "#/backend/entities/Page"
+          },
+          "description": "Stores individual AI-generated content pages for a project. Each document MUST include the 'ownerId' field (denormalized from the parent Project) for authorization independence. The 'projectId' field is also denormalized within the document."
+        }
+      },
+      {
+        "path": "/projects/{projectId}/generationRuns/{runId}",
+        "definition": {
+          "entityName": "GenerationRun",
+          "schema": {
+            "$ref": "#/backend/entities/GenerationRun"
+          },
+          "description": "Logs details of each AI content generation event for a project. Each document MUST include the 'ownerId' field (denormalized from the parent Project) for authorization independence. The 'projectId' field is also denormalized within the document."
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure for the 'AI Feed Engine (Lite)' application prioritizes strong adherence to core security and scalability principles, particularly Authorization Independence and Queryable Access Patterns (QAPs), given the explicit requirement for 'minimal auth' and reliance on `request.auth.uid`. While the input `backend.entities` did not explicitly include an `ownerId` field for the `Project` entity, or a `User` entity to enable path-based ownership (`/users/{userId}/projects/{projectId}`), this design assumes the *necessity* of an `ownerId` field for `Project` and its subcollections to enforce robust security rules based on `request.auth.uid`. This approach is the most secure and debuggable given the constraints, as it ensures authorization logic is self-contained within each document.\n\n**Authorization Independence via Denormalization:**\nEach top-level `Project` document (at `/projects/{projectId}`) MUST include an `ownerId` field that stores the Firebase `uid` of the user who created it. For all subcollections (`brandMemory`, `pages`, `generationRuns`), their documents also MUST include this `ownerId` field, denormalized from their parent `Project`. This denormalization is critical. It eliminates the need for `get()` calls in Firestore Security Rules to check parent document ownership, ensuring that rules can evaluate authorization atomically and efficiently. For instance, a rule for a `Page` document can directly check `resource.data.ownerId == request.auth.uid` without needing to fetch the parent `Project` document.\n\n**Queryable Access Patterns (QAPs):**\nThis structure supports secure `list` operations by enforcing client-side query constraints coupled with server-side rule validation. For example, when a user wants to list their projects, the client-side query MUST include `where('ownerId', '==', request.auth.uid)`. The Firestore Security Rules can then validate that `request.auth.uid` is not null and that the incoming query *includes* this specific `ownerId` filter, preventing users from querying all projects. Similarly, for subcollections like `pages` under a specific `projectId`, the client-side query would already be scoped to `/projects/{projectId}/pages` (where `{projectId}` is known to be owned by `request.auth.uid`), and the rules would re-verify `ownerId` on each page document, ensuring homogeneous security posture within the collection.\n\n**Structural Segregation & Consistency:**\nAll project-specific data (BrandMemory, Pages, GenerationRuns) is directly nested under its `Project` document. This creates a clear, logical hierarchy where all documents within a given subcollection share the same security requirements (i.e., being owned by the project's `ownerId`). Wildcards like `{projectId}`, `{brandMemoryId}`, `{pageId}`, and `{runId}` are semantically clear, enhancing debuggability and predictability."
+  }
+}

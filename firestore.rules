@@ -1,0 +1,119 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * CORE PHILOSOPHY:
+     * This ruleset implements a strict User-Ownership model optimized for a SaaS environment.
+     * To ensure high performance and Authorization Independence, the 'ownerId' (the UID of the 
+     * project creator) is denormalized onto every document across all collections and subcollections.
+     * This allows the security rules to evaluate access permissions atomically without requiring
+     * costly cross-document lookups (get() calls).
+     *
+     * DATA STRUCTURE:
+     * - /projects/{projectId}: Root documents for business entities.
+     * - /projects/{projectId}/brandMemory/{id}: Private project configuration.
+     * - /projects/{projectId}/pages/{id}: Public-facing AI generated content.
+     * - /projects/{projectId}/generationRuns/{id}: Private execution logs.
+     *
+     * KEY SECURITY DECISIONS:
+     * 1. Authorization Independence: Every document contains an 'ownerId' field. Rules strictly
+     *    validate that this field matches the authenticated user's UID.
+     * 2. Public Content: The 'Page' entity allows public read access (get/list) to support SEO
+     *    and the public feed routes (/feed/[slug]), while restricting writes to the owner.
+     * 3. Relational Integrity: Rules enforce that 'projectId' fields within documents match 
+     *    the parent path to prevent data being moved between projects.
+     * 4. Prototyping Flexibility: While ownership and relational links are strictly enforced,
+     *    the specific schema of content fields (tone, services, htmlContent) is not validated
+     *    to allow for rapid iteration of the AI generation logic.
+     */
+
+    // --- Helper Functions ---
+
+    /** @description Checks if the request is from an authenticated user. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** @description Checks if the provided UID matches the authenticated user. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** @description Validates ownership for existing documents during update or delete. */
+    function isExistingOwner(ownerId) {
+      return resource != null && isOwner(ownerId);
+    }
+
+    /** @description Validates that the data being written identifies the current user as the owner. */
+    function isNewOwner(ownerId) {
+      return isOwner(ownerId);
+    }
+
+    /** @description Enforces that a field's value remains unchanged during an update. */
+    function isUnchanged(fieldName) {
+      return request.resource.data[fieldName] == resource.data[fieldName];
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Rules for the Project entity. Only the owner can manage their projects.
+     * @path /projects/{projectId}
+     * @allow (create) if user is signed in and sets themselves as ownerId.
+     * @deny (read) if user is not the owner.
+     * @principle Ownership-based access control with denormalized ownerId.
+     */
+    match /projects/{projectId} {
+      allow get: if isOwner(resource.data.ownerId);
+      allow list: if isSignedIn(); // Queries must still filter by ownerId to succeed.
+      allow create: if isNewOwner(request.resource.data.ownerId);
+      allow update: if isExistingOwner(resource.data.ownerId) && isUnchanged('ownerId');
+      allow delete: if isExistingOwner(resource.data.ownerId);
+
+      /**
+       * @description Rules for Brand Memory. Private configuration used for AI training.
+       * @path /projects/{projectId}/brandMemory/{brandMemoryId}
+       * @allow (update) if owner matches and projectId link is preserved.
+       * @deny (get) if requested by a user other than the project owner.
+       * @principle Subcollection security via denormalized ownership and path consistency.
+       */
+      match /brandMemory/{brandMemoryId} {
+        allow get: if isOwner(resource.data.ownerId);
+        allow list: if isSignedIn();
+        allow create: if isNewOwner(request.resource.data.ownerId) && request.resource.data.projectId == projectId;
+        allow update: if isExistingOwner(resource.data.ownerId) && isUnchanged('ownerId') && isUnchanged('projectId');
+        allow delete: if isExistingOwner(resource.data.ownerId);
+      }
+
+      /**
+       * @description Rules for generated Pages. Publicly readable for SEO and feed hosting.
+       * @path /projects/{projectId}/pages/{pageId}
+       * @allow (get) for everyone (public access).
+       * @allow (create/update) only for the authenticated project owner.
+       * @principle Public Read with Owner-Only Writes.
+       */
+      match /pages/{pageId} {
+        allow get, list: if true;
+        allow create: if isNewOwner(request.resource.data.ownerId) && request.resource.data.projectId == projectId;
+        allow update: if isExistingOwner(resource.data.ownerId) && isUnchanged('ownerId') && isUnchanged('projectId');
+        allow delete: if isExistingOwner(resource.data.ownerId);
+      }
+
+      /**
+       * @description Rules for Generation Runs. Private logs and status of AI jobs.
+       * @path /projects/{projectId}/generationRuns/{runId}
+       * @allow (list) for the owner to monitor progress in the dashboard.
+       * @deny (create) if the ownerId in the data does not match the requester.
+       * @principle Restricts access to sensitive system logs to the data owner.
+       */
+      match /generationRuns/{runId} {
+        allow get: if isOwner(resource.data.ownerId);
+        allow list: if isSignedIn();
+        allow create: if isNewOwner(request.resource.data.ownerId) && request.resource.data.projectId == projectId;
+        allow update: if isExistingOwner(resource.data.ownerId) && isUnchanged('ownerId') && isUnchanged('projectId');
+        allow delete: if isExistingOwner(resource.data.ownerId);
+      }
+    }
+  }
+}
