@@ -18,6 +18,37 @@ service cloud.firestore {
     }
 
     /**
+     * @description Admin check.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid));
+    }
+
+    // Admin-only collections
+    match /adminUsers/{uid} {
+      allow read: if isSignedIn();
+    }
+    match /eventLogs/{eventId} {
+      allow create: if true; // Telemetry can be created by anyone (visitors)
+      allow read: if isAdmin();
+    }
+    match /userProfiles/{uid} {
+      allow read, write: if isOwner(uid) || isAdmin();
+    }
+    match /systemConfig/product {
+      allow read: if true; // Knowledge source for public chat
+      allow write: if isAdmin();
+    }
+
+    // Visitor chat sessions
+    match /visitorChatSessions/{sessionId} {
+      allow read, write: if true; // Public chat sessions
+      match /messages/{messageId} {
+        allow read, write: if true;
+      }
+    }
+
+    /**
      * @description Rules for the Project entity and its subcollections.
      */
     match /projects/{projectId} {
@@ -25,7 +56,7 @@ service cloud.firestore {
       // Project root document rules
       // Publicly readable for slug lookups in the public feed
       allow get: if true;
-      allow list: if true; 
+      allow list: if isOwner(resource.data.ownerId) || isAdmin(); 
       
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update: if isSignedIn() && resource.data.ownerId == request.auth.uid;

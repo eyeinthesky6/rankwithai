@@ -5,11 +5,12 @@ import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, where, limit, addDoc, serverTimestamp } from "firebase/firestore";
 import { useParams, notFound } from "next/navigation";
 import { ArrowRight, ChevronRight, MessageSquare, ShieldCheck, Globe, Loader2, Send, CheckCircle2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { logEvent } from "@/lib/telemetry";
 
 export default function PublicFeedPage() {
   const { projectSlug, pageSlug } = useParams() as { projectSlug: string, pageSlug: string };
@@ -39,6 +40,17 @@ export default function PublicFeedPage() {
 
   const { data: pages, isLoading: pageLoading } = useCollection(pagesQuery);
   const page = pages?.[0];
+
+  // Log feed view
+  useEffect(() => {
+    if (project && page) {
+      logEvent('feed_page_view', { 
+        projectId: project.id, 
+        pageSlug: page.slug,
+        meta: { referrer: typeof document !== 'undefined' ? document.referrer : '' }
+      });
+    }
+  }, [project?.id, page?.slug]);
 
   if (projectLoading || pageLoading) {
     return (
@@ -76,7 +88,7 @@ export default function PublicFeedPage() {
     const formData = new FormData(e.currentTarget);
     const leadData = {
       projectId: project.id,
-      ownerId: project.ownerId, // Correctly attribute to project owner
+      ownerId: project.ownerId, 
       pageSlug: page.slug,
       name: formData.get('name') as string,
       email: formData.get('email') as string,
@@ -88,6 +100,7 @@ export default function PublicFeedPage() {
     try {
       await addDoc(collection(db, 'projects', project.id, 'leads'), leadData);
       setSubmitted(true);
+      logEvent('lead_created', { projectId: project.id, pageSlug: page.slug });
       toast({ title: "Message Received", description: "Our specialists will review your inquiry." });
     } catch (e) {
       toast({ title: "Submission Failed", variant: "destructive" });

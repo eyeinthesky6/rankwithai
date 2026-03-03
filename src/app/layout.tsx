@@ -1,9 +1,10 @@
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
 import { ThemeProvider } from '@/components/theme-provider';
+import { TelemetryWrapper } from '@/components/telemetry-wrapper';
+import { VisitorChat } from '@/components/chat/visitor-chat';
 
 export const metadata: Metadata = {
   title: 'rankwithai | The Deterministic AI Feed Engine',
@@ -25,8 +26,11 @@ export default function RootLayout({
       <body className="font-body min-h-screen flex flex-col">
         <FirebaseClientProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            {children}
-            <Toaster />
+            <TelemetryWrapper>
+              {children}
+              <VisitorChat />
+              <Toaster />
+            </TelemetryWrapper>
           </ThemeProvider>
         </FirebaseClientProvider>
       </body>

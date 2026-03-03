@@ -44,6 +44,49 @@
       },
       "required": ["id", "ownerId", "name", "slug", "website", "niche", "createdAt"]
     },
+    "UserProfile": {
+      "title": "UserProfile",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastSeenAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "EventLog": {
+      "title": "EventLog",
+      "properties": {
+        "eventType": { "type": "string" },
+        "uid": { "type": "string" },
+        "projectId": { "type": "string" },
+        "pageSlug": { "type": "string" },
+        "meta": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "SystemConfig": {
+      "title": "SystemConfig",
+      "properties": {
+        "productDoc": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "VisitorChatSession": {
+      "title": "VisitorChatSession",
+      "properties": {
+        "id": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastMessageAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "VisitorChatMessage": {
+      "title": "VisitorChatMessage",
+      "properties": {
+        "role": { "type": "string", "enum": ["user", "assistant"] },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
     "AIUsageLog": {
       "title": "AIUsageLog",
       "description": "Log of a single AI repair or optimization call.",
@@ -240,6 +283,12 @@
     "/projects/{projectId}/aiUsageLogs/{logId}": { "schema": "AIUsageLog", "description": "Granular AI usage logs." },
     "/projects/{projectId}/copilotSessions/{sessionId}": { "schema": "CopilotSession", "description": "Copilot chat sessions." },
     "/projects/{projectId}/copilotSessions/{sessionId}/messages/{messageId}": { "schema": "CopilotMessage", "description": "Copilot chat messages." },
-    "/projects/{projectId}/copilotSessions/{sessionId}/drafts/{draftId}": { "schema": "CopilotDraft", "description": "Copilot identity drafts." }
+    "/projects/{projectId}/copilotSessions/{sessionId}/drafts/{draftId}": { "schema": "CopilotDraft", "description": "Copilot identity drafts." },
+    "/userProfiles/{uid}": { "schema": "UserProfile", "description": "Aggregated user profiles." },
+    "/eventLogs/{eventId}": { "schema": "EventLog", "description": "System telemetry events." },
+    "/adminUsers/{uid}": { "schema": "object", "description": "Allowlist for admins." },
+    "/systemConfig/product": { "schema": "SystemConfig", "description": "Global product documentation." },
+    "/visitorChatSessions/{sessionId}": { "schema": "VisitorChatSession", "description": "Public chat sessions." },
+    "/visitorChatSessions/{sessionId}/messages/{messageId}": { "schema": "VisitorChatMessage", "description": "Public chat messages." }
   }
 }
