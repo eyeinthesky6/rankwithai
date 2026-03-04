@@ -17,12 +17,13 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [savingDoc, setSavingDoc] = useState(false);
 
@@ -30,12 +31,19 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (user) {
       const checkAdmin = async () => {
-        const adminSnap = await getDocs(query(collection(db, 'adminUsers'), where('__name__', '==', user.uid)));
-        setIsAdmin(!adminSnap.empty);
+        try {
+          const adminSnap = await getDocs(query(collection(db, 'adminUsers'), where('__name__', '==', user.uid)));
+          setIsAdmin(!adminSnap.empty);
+        } catch (e) {
+          console.error("Admin check failed:", e);
+          setIsAdmin(false);
+        }
       };
       checkAdmin();
+    } else if (!isUserLoading) {
+      setIsAdmin(false);
     }
-  }, [user, db]);
+  }, [user, isUserLoading, db]);
 
   // Product Doc
   const docRef = useMemoFirebase(() => doc(db, 'systemConfig', 'product'), [db]);
@@ -46,12 +54,24 @@ export default function AdminDashboard() {
     if (config?.productDoc) setDocContent(config.productDoc);
   }, [config]);
 
-  // Metrics (Limited fetch for MVP)
-  const eventsQuery = useMemoFirebase(() => query(collection(db, 'eventLogs'), orderBy('createdAt', 'desc'), limit(50)), [db]);
+  // Metrics (Only fetch if confirmed admin to avoid permission errors)
+  const eventsQuery = useMemoFirebase(() => {
+    if (isAdmin !== true) return null;
+    return query(collection(db, 'eventLogs'), orderBy('createdAt', 'desc'), limit(50));
+  }, [db, isAdmin]);
   const { data: events } = useCollection(eventsQuery);
 
-  const projectsQuery = useMemoFirebase(() => query(collection(db, 'projects'), limit(100)), [db]);
+  const projectsQuery = useMemoFirebase(() => {
+    if (isAdmin !== true) return null;
+    return query(collection(db, 'projects'), limit(100));
+  }, [db, isAdmin]);
   const { data: projects } = useCollection(projectsQuery);
+
+  useEffect(() => {
+    if (isAdmin === false) {
+      router.push('/dashboard');
+    }
+  }, [isAdmin, router]);
 
   if (isUserLoading || isAdmin === null) {
     return (
@@ -61,9 +81,7 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!isAdmin) {
-    return redirect('/dashboard');
-  }
+  if (isAdmin === false) return null;
 
   const handleSaveDoc = async () => {
     setSavingDoc(true);

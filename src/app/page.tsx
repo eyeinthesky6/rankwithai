@@ -68,7 +68,7 @@ export default function LandingPage() {
         {/* Hero Section */}
         <section className="max-w-7xl mx-auto px-6 pt-24 pb-32 text-center space-y-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest border border-primary/20">
-            <Zap className="h-3 w-3" />
+            <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
             Deterministic AI Content Generation
           </div>
           <h1 className="text-5xl md:text-7xl font-black leading-[1.1] tracking-tighter max-w-4xl mx-auto">

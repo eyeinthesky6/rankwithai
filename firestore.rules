@@ -56,50 +56,50 @@ service cloud.firestore {
       // Project root document rules
       // Publicly readable for slug lookups in the public feed
       allow get: if true;
-      // Allow list if signed in; the query filter handles user isolation
-      allow list: if isSignedIn(); 
+      // Allow list if signed in and the query is restricted to owned projects, or if admin
+      allow list: if isSignedIn() && (isAdmin() || resource.data.ownerId == request.auth.uid); 
       
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.ownerId == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
 
       // Subcollections
 
       match /pages/{pageId} {
         // Publicly readable for SEO and feed hosting
         allow read: if true;
-        // Only the owner can manage pages
-        allow write: if isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId);
+        // Only the owner or admin can manage pages
+        allow write: if isSignedIn() && (isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || isAdmin());
       }
 
       match /generationRuns/{runId} {
-        allow read, write: if isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId);
+        allow read, write: if isSignedIn() && (isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || isAdmin());
       }
 
       match /leads/{leadId} {
         // Leads can be created publicly by any user visiting a feed page
         allow create: if true;
-        // Only the owner can manage their leads
-        allow read, update, delete: if isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId);
+        // Only the owner or admin can manage their leads
+        allow read, update, delete: if isSignedIn() && (isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || isAdmin());
       }
 
       match /customDomains/{domainId} {
-        allow read, write: if isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId);
+        allow read, write: if isSignedIn() && (isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || isAdmin());
       }
 
       match /aiUsageLogs/{logId} {
-        allow read, write: if isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId);
+        allow read, write: if isSignedIn() && (isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || isAdmin());
       }
 
       match /copilotSessions/{sessionId} {
-        allow read, write: if isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId);
+        allow read, write: if isSignedIn() && (isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || isAdmin());
         
         match /messages/{messageId} {
-          allow read, write: if isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId);
+          allow read, write: if isSignedIn() && (isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || isAdmin());
         }
         
         match /drafts/{draftId} {
-          allow read, write: if isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId);
+          allow read, write: if isSignedIn() && (isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || isAdmin());
         }
       }
     }
