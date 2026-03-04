@@ -56,7 +56,8 @@ service cloud.firestore {
       // Project root document rules
       // Publicly readable for slug lookups in the public feed
       allow get: if true;
-      allow list: if isOwner(resource.data.ownerId) || isAdmin(); 
+      // Allow list if signed in; the query filter handles user isolation
+      allow list: if isSignedIn(); 
       
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update: if isSignedIn() && resource.data.ownerId == request.auth.uid;

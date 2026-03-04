@@ -36,8 +36,16 @@ const visitorChatFlow = ai.defineFlow(
   async (input) => {
     const { firestore } = initializeFirebase();
     const docRef = doc(firestore, 'systemConfig', 'product');
-    const docSnap = await getDoc(docRef);
-    const productDoc = docSnap.exists() ? docSnap.data().productDoc : 'No product information available.';
+    let productDoc = 'No product information available.';
+    
+    try {
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        productDoc = docSnap.data().productDoc || productDoc;
+      }
+    } catch (e) {
+      console.warn('Could not fetch product doc for chat context:', e);
+    }
 
     const { output } = await ai.generate({
       system: `You are the "Feed Guide" AI agent for rankwithai.

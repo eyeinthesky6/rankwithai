@@ -14,6 +14,13 @@ export default function LandingPage() {
   const auth = useAuth();
   const router = useRouter();
 
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (user && !isUserLoading) {
+      router.push('/dashboard');
+    }
+  }, [user, isUserLoading, router]);
+
   const handleStart = (e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
