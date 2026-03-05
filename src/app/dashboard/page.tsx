@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -24,19 +23,21 @@ export default function Dashboard() {
     }
   }, [user, isUserLoading, router]);
 
+  // UseMemoFirebase ensures the query object is stable to prevent re-subscription loops
   const projectsQuery = useMemoFirebase(() => {
     if (!user) return null;
+    // Strict filtering by ownerId to satisfy Firestore 'Rules-as-Filters' security requirements
     return query(
       collection(db, 'projects'),
       where('ownerId', '==', user.uid),
       orderBy('createdAt', 'desc'),
       limit(50)
     );
-  }, [db, user]);
+  }, [db, user?.uid]); // Specifically watch user.uid
 
   const { data: projects, isLoading: projectsLoading } = useCollection(projectsQuery);
 
-  if (isUserLoading || projectsLoading) {
+  if (isUserLoading || (projectsLoading && !projects)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -63,7 +64,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-2 text-xs font-bold text-muted-foreground px-3 py-1 bg-muted rounded-full">
               <UserIcon className="h-3 w-3" />
-              {user.isAnonymous ? 'ANONYMOUS' : user.email}
+              {user.isAnonymous ? 'ANONYMOUS' : user.email || user.uid.slice(0, 8)}
             </div>
             <ThemeToggle />
           </div>

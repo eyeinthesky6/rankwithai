@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -19,7 +18,6 @@ service cloud.firestore {
 
     /**
      * @description Helper to check if the authenticated user owns the parent project.
-     * We use a direct get for security to ensure the user actually owns the path.
      */
     function isProjectOwner(projectId) {
       return isSignedIn() && (
@@ -29,12 +27,12 @@ service cloud.firestore {
 
     // Admin-only collections
     match /adminUsers/{uid} {
-      allow read: if isSignedIn();
+      allow read, list: if isSignedIn();
       allow write: if isAdmin();
     }
     
     match /eventLogs/{eventId} {
-      allow create: if true; // Telemetry can be created by anyone (visitors)
+      allow create: if true;
       allow read: if isAdmin();
     }
     
@@ -43,34 +41,33 @@ service cloud.firestore {
     }
     
     match /systemConfig/product {
-      allow read: if true; // Knowledge source for public chat
+      allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Visitor chat sessions
     match /visitorChatSessions/{sessionId} {
-      allow read, write: if true; // Public chat sessions
+      allow read, write: if true;
       match /messages/{messageId} {
         allow read, write: if true;
       }
     }
 
     /**
-     * @description Rules for the Project entity and its subcollections.
+     * @description Rules for the Project entity.
      */
     match /projects/{projectId} {
       
-      // Direct get is public for routing and feed identification
+      // Allow get for anyone (routing/slug resolution)
       allow get: if true;
       
       /**
-       * @description allow list:
-       * 1. Owners listing their own projects (Rules-as-Filters)
-       * 2. Admins listing any project
-       * 3. Public slug resolution (limit check prevents full enumeration)
+       * @description allow list logic:
+       * 1. Authenticated users can list their OWN projects (requires filter where ownerId == uid).
+       * 2. Admins can list any project.
+       * 3. Public slug resolution: allowed if the query limit is 1 (prevents scraping).
        */
       allow list: if (isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin()))
-                  || (request.query.limit <= 10);
+                  || (request.query.limit <= 1);
       
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       
@@ -82,16 +79,10 @@ service cloud.firestore {
       
       allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
 
-      // Subcollections using inheritance for performance
-
+      // Subcollections
       match /pages/{pageId} {
-        // Publicly readable for SEO if marked public OR if owner/admin
         allow read: if (resource.data.isPublic == true) || isProjectOwner(projectId) || isAdmin();
-        
-        // Slug lookup for visitors
         allow list: if (resource.data.isPublic == true && request.query.limit <= 5) || isProjectOwner(projectId) || isAdmin();
-        
-        // Owner/Admin write access
         allow write: if isProjectOwner(projectId) || isAdmin();
       }
 
@@ -100,9 +91,7 @@ service cloud.firestore {
       }
 
       match /leads/{leadId} {
-        // Leads can be created publicly by any user visiting a feed page
         allow create: if true;
-        // Only owner or admin can manage
         allow read, update, delete: if isProjectOwner(projectId) || isAdmin();
       }
 

@@ -1,17 +1,16 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { 
-  collection, query, orderBy, limit, doc, setDoc, getDocs, where, Timestamp 
+  collection, query, orderBy, limit, doc, setDoc, getDocs, where 
 } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { 
-  Users, BarChart3, Zap, ShieldAlert, FileText, LayoutGrid, 
+  BarChart3, Zap, ShieldAlert, FileText, LayoutGrid, 
   History, Loader2, Save, Sparkles, MessageSquare, AlertCircle, TrendingUp
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -31,7 +30,9 @@ export default function AdminDashboard() {
     if (user) {
       const checkAdmin = async () => {
         try {
-          const adminDoc = await getDocs(query(collection(db, 'adminUsers'), where('__name__', '==', user.uid)));
+          // Query adminUsers specifically by document ID (__name__) to verify role
+          const q = query(collection(db, 'adminUsers'), where('__name__', '==', user.uid));
+          const adminDoc = await getDocs(q);
           setIsAdmin(!adminDoc.empty);
         } catch (e) {
           console.error("Admin check failed:", e);
@@ -52,6 +53,7 @@ export default function AdminDashboard() {
     if (config?.productDoc) setDocContent(config.productDoc);
   }, [config]);
 
+  // Only attempt telemetry/project listing if admin status is confirmed
   const eventsQuery = useMemoFirebase(() => {
     if (isAdmin !== true) return null;
     return query(collection(db, 'eventLogs'), orderBy('createdAt', 'desc'), limit(50));
