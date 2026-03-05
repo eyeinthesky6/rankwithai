@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { 
-  collection, query, orderBy, limit, doc, setDoc, getDoc, getDocs, where 
+  collection, query, orderBy, limit, doc, setDoc, getDoc, where 
 } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -52,18 +52,21 @@ export default function AdminDashboard() {
     if (config?.productDoc) setDocContent(config.productDoc);
   }, [config]);
 
-  // Only attempt telemetry/project listing if admin status is confirmed
+  const projectsQuery = useMemoFirebase(() => {
+    if (isAdmin !== true || !user?.uid) return null;
+    return query(
+      collection(db, 'projects'),
+      where('ownerUid', '==', user.uid),
+      limit(100)
+    );
+  }, [db, isAdmin, user?.uid]);
+  const { data: projects } = useCollection(projectsQuery);
+
   const eventsQuery = useMemoFirebase(() => {
     if (isAdmin !== true) return null;
     return query(collection(db, 'eventLogs'), orderBy('createdAt', 'desc'), limit(50));
   }, [db, isAdmin]);
   const { data: events } = useCollection(eventsQuery);
-
-  const projectsQuery = useMemoFirebase(() => {
-    if (isAdmin !== true) return null;
-    return query(collection(db, 'projects'), limit(100));
-  }, [db, isAdmin]);
-  const { data: projects } = useCollection(projectsQuery);
 
   useEffect(() => {
     if (isAdmin === false) {
@@ -114,7 +117,7 @@ export default function AdminDashboard() {
 
       <main className="flex-1 p-6 md:p-12 max-w-7xl mx-auto w-full space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatCard title="Total Projects" value={totalProjects} icon={<LayoutGrid className="h-4 w-4" />} />
+          <StatCard title="My Projects" value={totalProjects} icon={<LayoutGrid className="h-4 w-4" />} />
           <StatCard title="Feed Views" value={feedViews} icon={<TrendingUp className="h-4 w-4" />} color="blue" />
           <StatCard title="AI Actions" value={aiCalls} icon={<Zap className="h-4 w-4" />} color="amber" />
           <StatCard title="Captured Leads" value={totalLeads} icon={<MessageSquare className="h-4 w-4" />} color="green" />
@@ -124,7 +127,6 @@ export default function AdminDashboard() {
           <TabsList className="bg-muted/50 p-1 rounded-xl mb-8">
             <TabsTrigger value="knowledge" className="flex gap-2"><FileText className="h-4 w-4" /> Knowledge Source</TabsTrigger>
             <TabsTrigger value="telemetry" className="flex gap-2"><History className="h-4 w-4" /> Activity Log</TabsTrigger>
-            <TabsTrigger value="health" className="flex gap-2"><Sparkles className="h-4 w-4" /> System Health</TabsTrigger>
           </TabsList>
 
           <TabsContent value="knowledge" className="space-y-6">
@@ -169,47 +171,11 @@ export default function AdminDashboard() {
                           <p className="text-[10px] text-muted-foreground">{e.createdAt?.toDate?.().toLocaleString() || 'Just now'}</p>
                         </div>
                       </div>
-                      <div className="text-[10px] font-bold text-muted-foreground opacity-40 group-hover:opacity-100">
-                        {e.platform}
-                      </div>
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="health">
-             <div className="grid md:grid-cols-2 gap-8">
-                <Card className="rounded-[2rem] border-border/50">
-                   <CardHeader>
-                      <CardTitle className="text-sm font-black uppercase tracking-widest opacity-60">Error Monitoring</CardTitle>
-                   </CardHeader>
-                   <CardContent>
-                      <div className="py-12 text-center text-muted-foreground italic text-sm">
-                         <AlertCircle className="h-8 w-8 mx-auto mb-4 opacity-20" />
-                         No critical execution errors detected.
-                      </div>
-                   </CardContent>
-                </Card>
-                <Card className="rounded-[2rem] border-border/50">
-                   <CardHeader>
-                      <CardTitle className="text-sm font-black uppercase tracking-widest opacity-60">AI Budget Governance</CardTitle>
-                   </CardHeader>
-                   <CardContent className="space-y-4">
-                      <div className="flex justify-between items-center text-xs font-bold">
-                         <span>Global Utilization</span>
-                         <span>Stable</span>
-                      </div>
-                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                         <div className="h-full bg-primary w-1/4" />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground leading-relaxed">
-                         Deterministic generation is accounting for &gt;90% of all structural writes. Token efficiency remains high.
-                      </p>
-                   </CardContent>
-                </Card>
-             </div>
           </TabsContent>
         </Tabs>
       </main>

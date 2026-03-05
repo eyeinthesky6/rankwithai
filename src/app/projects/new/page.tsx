@@ -43,7 +43,7 @@ export default function NewProject() {
         name,
         website,
         niche,
-        ownerId: user.uid,
+        ownerUid: user.uid,
         slug,
         createdAt: serverTimestamp(),
       });

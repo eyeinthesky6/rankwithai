@@ -6,36 +6,21 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(ownerId) {
-      return isSignedIn() && request.auth.uid == ownerId;
-    }
-
-    function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid));
-    }
-
     /**
-     * @description Rules for the Project entity and its subcollections.
+     * @description Rules for the Project entity.
+     * Enforces that only the project owner (ownerUid) can access their projects.
      */
     match /projects/{projectId} {
       
-      // Allow individual project lookup by ID for anyone
-      allow get: if true;
+      // Enforce ownership for project creation
+      allow create: if isSignedIn() && request.resource.data.ownerUid == request.auth.uid;
       
-      /**
-       * @description list rules:
-       * 1. Public Resolution: Allow anyone to list projects if limiting to 1 (for slug lookup).
-       * 2. Owner Filtering: Allow listing if the query is filtered by the user's UID (ownerId).
-       */
-      allow list: if (request.query.limit <= 1);
-      allow list: if isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid || isAdmin());
-      
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      // Enforce ownership for read (get/list), update, and delete
+      allow read, update, delete: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
 
       // Subcollections inherit ownership check from parent
       match /{allSubcollections=**} {
-        allow read, write: if isSignedIn() && (get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid || isAdmin());
+        allow read, write: if isSignedIn() && get(/databases/$(database)/documents/projects/$(projectId)).data.ownerUid == request.auth.uid;
       }
 
       // Specific overrides for subcollections that need public access
@@ -50,22 +35,22 @@ service cloud.firestore {
 
     // Global collections
     match /adminUsers/{uid} {
-      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
-      allow write: if isAdmin();
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false; 
     }
     
     match /userProfiles/{uid} {
-      allow read, write: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
     }
     
     match /systemConfig/product {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if false;
     }
 
     match /eventLogs/{eventId} {
       allow create: if true;
-      allow read: if isAdmin();
+      allow read: if false;
     }
 
     match /visitorChatSessions/{sessionId} {

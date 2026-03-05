@@ -2,14 +2,13 @@
 
 import Link from 'next/link';
 import { useCollection, useMemoFirebase, useFirestore, useUser, useAuth } from '@/firebase';
-import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, limit } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Globe, Briefcase, ChevronRight, LayoutGrid, Zap, Loader2, Sparkles, User as UserIcon, CreditCard, LogOut } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { PlusCircle, Globe, Loader2, Sparkles, User as UserIcon, CreditCard, LogOut } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import ProjectCard from './project-card';
 import { signOut } from 'firebase/auth';
 
@@ -30,14 +29,12 @@ export default function Dashboard() {
     router.push('/');
   };
 
-  // We explicitly scope the query by ownerId to satisfy Firestore's Rules-as-Filters.
   const projectsQuery = useMemoFirebase(() => {
     if (!user?.uid) return null;
     
     return query(
       collection(db, 'projects'),
-      where('ownerId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
+      where('ownerUid', '==', user.uid),
       limit(50)
     );
   }, [db, user?.uid]);
