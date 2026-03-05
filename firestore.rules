@@ -71,12 +71,12 @@ service cloud.firestore {
       
       /**
        * @description allow list:
-       * 1. If admin (any query)
-       * 2. If filtered by ownerId (dashboard)
-       * 3. If public slug lookup (limited results for visitors)
+       * 1. Owners listing their own projects (Rules-as-Filters)
+       * 2. Admins listing any project
+       * 3. Public slug resolution (limit check prevents full enumeration)
        */
-      allow list: if (isSignedIn() && (isAdmin() || request.query.limit <= 50))
-                  || (request.query.limit <= 5); // Safe threshold for public slug resolution
+      allow list: if (isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin()))
+                  || (request.query.limit <= 10);
       
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       

@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { useCollection, useMemoFirebase, useFirestore, useUser } from '@/firebase';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, limit } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, Globe, Briefcase, ChevronRight, LayoutGrid, Zap, Loader2, Sparkles, User as UserIcon, AlertTriangle, AlertCircle, CreditCard } from 'lucide-react';
@@ -28,7 +28,8 @@ export default function Dashboard() {
     return query(
       collection(db, 'projects'),
       where('ownerId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(50)
     );
   }, [db, user]);
 
@@ -152,7 +153,12 @@ function ProjectCard({ project }: { project: any }) {
 
   useEffect(() => {
     const fetchHealth = async () => {
-      const q = query(collection(db, 'projects', project.id, 'pages'), where('ownerId', '==', project.ownerId));
+      // Query restricted to pages owned by the project owner
+      const q = query(
+        collection(db, 'projects', project.id, 'pages'), 
+        where('ownerId', '==', project.ownerId),
+        limit(100)
+      );
       const snap = await getDocs(q);
       const stale = snap.docs.filter(d => d.data().isStale).length;
       const issues = snap.docs.filter(d => d.data().qaStatus === 'NEEDS_FIX').length;
