@@ -34,7 +34,7 @@ export default function Dashboard() {
     
     return query(
       collection(db, 'projects'),
-      where('ownerId', '==', user.uid),
+      where('ownerUid', '==', user.uid),
       limit(50)
     );
   }, [db, user?.uid]);

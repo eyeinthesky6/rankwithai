@@ -22,7 +22,7 @@ export default function ProjectCard({ project }: { project: any }) {
       // Query restricted to pages owned by the project owner (current user)
       const q = query(
         collection(db, 'projects', project.id, 'pages'), 
-        where('ownerId', '==', user.uid),
+        where('ownerUid', '==', user.uid),
         limit(50)
       );
       try {

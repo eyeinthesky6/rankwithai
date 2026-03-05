@@ -8,29 +8,26 @@ service cloud.firestore {
 
     /**
      * @description Rules for the Project entity.
-     * Enforces that only the project owner (ownerId) can access their projects.
-     * Uses 'rules as filters' pattern - queries MUST filter by ownerId == request.auth.uid
+     * Enforces that only the project owner (ownerUid) can access their projects.
+     * Uses 'rules as filters' pattern.
      */
     match /projects/{projectId} {
       
       // Allow get (single document) for anyone - used for slug resolution
       allow get: if true;
       
-      // List rules:
-      // 1. Public slug lookup: limit <= 1 without auth (for /feed pages)
-      // 2. Authenticated: user can list their own projects (query must filter by ownerId)
-      allow list: if (request.query.limit <= 1);
-      allow list: if isSignedIn();
+      // Enforce ownership for list operations (Rules as Filters)
+      allow list: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
       
       // Enforce ownership for project creation
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.ownerUid == request.auth.uid;
       
       // Enforce ownership for read (get/list), update, and delete
-      allow read, update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow read, update, delete: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
 
       // Subcollections inherit ownership check from parent
       match /{allSubcollections=**} {
-        allow read, write: if isSignedIn() && get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid;
+        allow read, write: if isSignedIn() && get(/databases/$(database)/documents/projects/$(projectId)).data.ownerUid == request.auth.uid;
       }
 
       // Specific overrides for subcollections that need public access

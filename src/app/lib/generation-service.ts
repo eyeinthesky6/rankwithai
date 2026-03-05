@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Firestore, collection, doc, setDoc, addDoc, serverTimestamp, getDocs, query, where, writeBatch, updateDoc, increment } from 'firebase/firestore';
@@ -14,10 +13,10 @@ const REPAIR_DAILY_CAP = 5; // Individual repair cap per day
  */
 export async function runGeneration(db: Firestore, project: any, requestedCount: number, onProgress: (p: number) => void) {
   const brandMemory = project.brandMemory;
-  const ownerId = project.ownerId;
+  const ownerUid = project.ownerUid;
   const projectId = project.id;
 
-  if (!ownerId) {
+  if (!ownerUid) {
     throw new Error("Project owner identity missing. Cannot generate pages.");
   }
 
@@ -25,7 +24,7 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
 
   const runRef = await addDoc(collection(db, 'projects', projectId, 'generationRuns'), {
     projectId,
-    ownerId,
+    ownerUid,
     timestamp: serverTimestamp(),
     status: 'started',
     requestedCount,
@@ -82,7 +81,7 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
       
       firestoreBatch.set(pageRef, {
         projectId,
-        ownerId,
+        ownerUid,
         slug: skeleton.slug,
         type: skeleton.type,
         seoTitle: skeleton.seoTitle,
@@ -135,7 +134,7 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
  */
 export async function checkAndLogRepairBudget(db: Firestore, project: any, actionType: string, pageSlug: string) {
   const projectId = project.id;
-  const ownerId = project.ownerId;
+  const ownerUid = project.ownerUid;
   const today = new Date().toISOString().split('T')[0];
   const usage = project.aiUsage || {};
 
@@ -147,7 +146,7 @@ export async function checkAndLogRepairBudget(db: Firestore, project: any, actio
   // Log usage
   await addDoc(collection(db, 'projects', projectId, 'aiUsageLogs'), {
     projectId,
-    ownerId,
+    ownerUid,
     actionType,
     pageSlug,
     tokensEstimated: 500, // Static estimate for UX

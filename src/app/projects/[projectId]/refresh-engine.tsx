@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -17,8 +16,8 @@ export default function RefreshEngine({ project }: { project: any }) {
   const db = useFirestore();
 
   const pagesQuery = useMemoFirebase(() => {
-    return query(collection(db, 'projects', project.id, 'pages'), where('ownerId', '==', project.ownerId));
-  }, [db, project.id, project.ownerId]);
+    return query(collection(db, 'projects', project.id, 'pages'), where('ownerUid', '==', project.ownerUid));
+  }, [db, project.id, project.ownerUid]);
   
   const { data: pages } = useCollection(pagesQuery);
 

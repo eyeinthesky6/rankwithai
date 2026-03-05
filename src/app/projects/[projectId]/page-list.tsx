@@ -20,7 +20,7 @@ export default function PageList({ project }: { project: any }) {
     if (!user) return null;
     return query(
       collection(db, 'projects', project.id, 'pages'), 
-      where('ownerId', '==', user.uid),
+      where('ownerUid', '==', user.uid),
       orderBy('createdAt', 'desc')
     );
   }, [db, project.id, user?.uid]);

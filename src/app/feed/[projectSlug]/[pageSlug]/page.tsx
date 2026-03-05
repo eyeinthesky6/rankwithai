@@ -69,7 +69,7 @@ export default function PublicFeedPage() {
     const formData = new FormData(e.currentTarget);
     const leadData = {
       projectId: project.id,
-      ownerId: project.ownerId, 
+      ownerUid: project.ownerUid, 
       pageSlug: page.slug,
       name: formData.get('name') as string,
       email: formData.get('email') as string,

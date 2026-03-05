@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -49,7 +48,7 @@ export default function CustomDomainManager({ project }: { project: any }) {
     try {
       await setDoc(doc(db, 'projects', project.id, 'customDomains', id), {
         projectId: project.id,
-        ownerId: project.ownerId,
+        ownerUid: project.ownerUid,
         requestedDomain: domainInput,
         status: 'REQUESTED',
         verificationToken: token,
