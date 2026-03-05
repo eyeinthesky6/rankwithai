@@ -7,3 +7,5 @@ import '@/ai/flows/generate-feed-pages.ts';
 import '@/ai/flows/refresh-content-flow.ts';
 import '@/ai/flows/verify-domain-dns.ts';
 import '@/ai/flows/detect-host-flow.ts';
+import '@/ai/flows/visitor-chat-flow.ts';
+import '@/ai/flows/copilot-setup-flow.ts';

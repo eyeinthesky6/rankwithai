@@ -272,7 +272,7 @@
     }
   },
   "auth": {
-    "providers": ["anonymous"]
+    "providers": ["google"]
   },
   "firestore": {
     "/projects/{projectId}": { "schema": "Project", "description": "Project root." },

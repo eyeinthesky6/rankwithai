@@ -1,12 +1,16 @@
+
 'use client';
 import {
   Auth,
   GoogleAuthProvider,
-  signInWithRedirect,
-  signInWithPopup
+  signInWithRedirect
 } from 'firebase/auth';
 
-/** Initiate Google Sign-In (redirect flow - recommended for mobile/compat). */
+/** 
+ * Initiate Google Sign-In via Redirect.
+ * This ensures an "inline" experience where the user remains within the same context 
+ * and is redirected back to the application after authentication.
+ */
 export function initiateGoogleSignIn(authInstance: Auth): void {
   if (!authInstance) {
     console.error('Auth instance not available');
@@ -14,17 +18,12 @@ export function initiateGoogleSignIn(authInstance: Auth): void {
   }
   
   const provider = new GoogleAuthProvider();
-  // Add any additional scopes if needed
   provider.addScope('profile');
   provider.addScope('email');
   
-  // Use popup as fallback since redirect may have issues in some environments
   try {
-    signInWithPopup(authInstance, provider).catch((error) => {
-      console.error('Popup failed, trying redirect:', error);
-      signInWithRedirect(authInstance, provider);
-    });
+    signInWithRedirect(authInstance, provider);
   } catch (error) {
-    console.error('Google sign-in error:', error);
+    console.error('Google sign-in redirect error:', error);
   }
 }

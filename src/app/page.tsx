@@ -1,36 +1,23 @@
+
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Sparkles, ShieldCheck, Zap, Globe, ArrowRight, LayoutGrid, Loader2, MessageSquare } from 'lucide-react';
-import { useUser, initiateGoogleSignIn, useAuth } from '@/firebase';
+import { Sparkles, Globe, ArrowRight, LayoutGrid, Loader2, MessageSquare, Zap } from 'lucide-react';
+import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 export default function LandingPage() {
   const { user, isUserLoading } = useUser();
-  const auth = useAuth();
   const router = useRouter();
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
     if (user && !isUserLoading) {
       router.push('/dashboard');
     }
   }, [user, isUserLoading, router]);
-
-  const handleStart = async () => {
-    if (isLoggingIn) return;
-    setIsLoggingIn(true);
-    try {
-      await initiateGoogleSignIn(auth);
-    } catch (error) {
-      console.error("Auth failed:", error);
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
 
   return (
     <div className="flex-1 flex flex-col hero-gradient selection:bg-primary/10">
@@ -51,7 +38,9 @@ export default function LandingPage() {
                 <Button size="sm" className="font-bold rounded-xl">Go to Dashboard</Button>
               </Link>
             ) : (
-              <Button onClick={handleStart} size="sm" variant="outline" className="font-bold rounded-xl">Sign In</Button>
+              <Link href="/login">
+                <Button size="sm" variant="outline" className="font-bold rounded-xl">Sign In</Button>
+              </Link>
             )}
           </div>
         </div>
@@ -70,14 +59,15 @@ export default function LandingPage() {
             Add AI-trusted lead capturing pages to your website and be the business that AI search engines find and recommend.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
-            <Button 
-              onClick={handleStart} 
-              size="lg" 
-              className="h-14 px-10 text-lg font-bold rounded-2xl shadow-xl hover:scale-105 transition-all w-full sm:w-auto"
-              disabled={isUserLoading || isLoggingIn}
-            >
-              {isUserLoading || isLoggingIn ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Get AI-Ready <ArrowRight className="ml-2 h-5 w-5" /></>}
-            </Button>
+            <Link href="/login" className="w-full sm:w-auto">
+              <Button 
+                size="lg" 
+                className="h-14 px-10 text-lg font-bold rounded-2xl shadow-xl hover:scale-105 transition-all w-full sm:w-auto"
+                disabled={isUserLoading}
+              >
+                Get AI-Ready <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
             <Link href="/pricing" className="w-full sm:w-auto">
               <Button variant="outline" size="lg" className="h-14 px-10 text-lg font-bold rounded-2xl w-full">
                 View Pricing
@@ -124,9 +114,11 @@ export default function LandingPage() {
             <p className="text-primary-foreground/80 text-lg font-medium">
               Join businesses using rankwithai to build a search presence that actually works in the age of AI.
             </p>
-            <Button onClick={handleStart} size="lg" variant="secondary" className="h-14 px-12 text-lg font-bold rounded-2xl bg-white text-primary hover:bg-slate-100" disabled={isUserLoading || isLoggingIn}>
-              Start Free Trial
-            </Button>
+            <Link href="/login">
+              <Button size="lg" variant="secondary" className="h-14 px-12 text-lg font-bold rounded-2xl bg-white text-primary hover:bg-slate-100">
+                Start Free Trial
+              </Button>
+            </Link>
           </div>
           <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
             <LayoutGrid className="w-full h-full" />
