@@ -53,15 +53,16 @@ service cloud.firestore {
 
     /**
      * @description Rules for the Project entity.
+     * Fixed: Allow public slug resolution while protecting private project lists.
      */
     match /projects/{projectId} {
       
-      // Allow get for anyone (routing/slug resolution)
+      // Allow individual project lookup by ID for anyone (public feeds need this)
       allow get: if true;
       
       /**
        * @description allow list logic:
-       * 1. Slug resolution: allowed if the query limit is 1 (public).
+       * 1. Slug resolution: allowed for anyone IF the query limit is 1 (prevents scraping).
        * 2. Owners: can list their own projects.
        * 3. Admins: can list any project.
        */
@@ -76,7 +77,9 @@ service cloud.firestore {
 
       // Subcollections
       match /pages/{pageId} {
+        // Public pages are readable by anyone. Private pages only by owner/admin.
         allow read: if (resource.data.isPublic == true) || isOwner() || isAdmin();
+        // Listing pages follows similar logic.
         allow list: if (resource.data.isPublic == true && request.query.limit <= 10) || isOwner() || isAdmin();
         allow write: if isOwner() || isAdmin();
       }

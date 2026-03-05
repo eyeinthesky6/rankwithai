@@ -1,10 +1,10 @@
-
 'use client';
 
-import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { doc } from "firebase/firestore";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { ChevronLeft, Sparkles, Trash2, ExternalLink, Loader2, LayoutDashboard, Database, FileText, RefreshCw, Users, Eye, Globe, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,11 +23,18 @@ export default function ProjectDetails() {
   const { projectId } = useParams() as { projectId: string };
   const db = useFirestore();
   const router = useRouter();
+  const { user, isUserLoading } = useUser();
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/');
+    }
+  }, [user, isUserLoading, router]);
 
   const projectRef = useMemoFirebase(() => doc(db, 'projects', projectId), [db, projectId]);
   const { data: project, isLoading } = useDoc(projectRef);
 
-  if (isLoading) {
+  if (isUserLoading || isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -35,11 +42,11 @@ export default function ProjectDetails() {
     );
   }
 
-  if (!project) {
+  if (!user || !project) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center space-y-4">
         <h2 className="text-2xl font-bold">Project not found</h2>
-        <Link href="/">
+        <Link href="/dashboard">
           <Button>Back to Dashboard</Button>
         </Link>
       </div>
@@ -49,7 +56,7 @@ export default function ProjectDetails() {
   const handleDelete = () => {
     if (confirm("Are you sure you want to delete this project?")) {
       deleteDocumentNonBlocking(projectRef);
-      router.push('/');
+      router.push('/dashboard');
     }
   };
 
@@ -57,9 +64,9 @@ export default function ProjectDetails() {
     <div className="flex-1 p-8 max-w-7xl mx-auto w-full space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <Link href="/" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+          <Link href="/dashboard" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
             <ChevronLeft className="mr-1 h-4 w-4" />
-            Back to Projects
+            Back to Dashboard
           </Link>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold text-primary">{project.name}</h1>

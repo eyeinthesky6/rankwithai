@@ -1,19 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { useCollection, useMemoFirebase, useFirestore, useUser } from '@/firebase';
+import { useCollection, useMemoFirebase, useFirestore, useUser, useAuth } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Globe, Briefcase, ChevronRight, LayoutGrid, Zap, Loader2, Sparkles, User as UserIcon, CreditCard } from 'lucide-react';
+import { PlusCircle, Globe, Briefcase, ChevronRight, LayoutGrid, Zap, Loader2, Sparkles, User as UserIcon, CreditCard, LogOut } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import ProjectCard from './project-card';
+import { signOut } from 'firebase/auth';
 
 export default function Dashboard() {
   const db = useFirestore();
+  const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
@@ -22,6 +24,11 @@ export default function Dashboard() {
       router.push('/');
     }
   }, [user, isUserLoading, router]);
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    router.push('/');
+  };
 
   // UseMemoFirebase ensures the query object is stable to prevent re-subscription loops
   const projectsQuery = useMemoFirebase(() => {
@@ -33,7 +40,7 @@ export default function Dashboard() {
       orderBy('createdAt', 'desc'),
       limit(50)
     );
-  }, [db, user?.uid]); // Specifically watch user.uid
+  }, [db, user?.uid]);
 
   const { data: projects, isLoading: projectsLoading } = useCollection(projectsQuery);
 
@@ -67,6 +74,9 @@ export default function Dashboard() {
               {user.isAnonymous ? 'ANONYMOUS' : user.email || user.uid.slice(0, 8)}
             </div>
             <ThemeToggle />
+            <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign Out">
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </nav>
