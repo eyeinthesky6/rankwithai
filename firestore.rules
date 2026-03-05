@@ -24,6 +24,16 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid));
     }
 
+    /**
+     * @description Helper to check if the authenticated user owns the parent project.
+     * Efficient for subcollection listing.
+     */
+    function isProjectOwner(projectId) {
+      return isSignedIn() && (
+        get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid
+      );
+    }
+
     // Admin-only collections
     match /adminUsers/{uid} {
       allow read: if isSignedIn();
@@ -64,10 +74,10 @@ service cloud.firestore {
        * @description allow list:
        * 1. If admin (any query)
        * 2. If filtered by ownerId (dashboard)
-       * 3. If public slug lookup (limited to 1 result)
+       * 3. If public slug lookup (limited to 1 result for visitors)
        */
       allow list: if (isSignedIn() && (isAdmin() || resource.data.ownerId == request.auth.uid))
-                  || (request.query.limit <= 5); // Safe threshold for slug resolution
+                  || (request.query.limit <= 5); // Safe threshold for public slug resolution
       
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       
@@ -83,69 +93,44 @@ service cloud.firestore {
       
       allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
 
-      // Subcollections
+      // Subcollections using inheritance-based check
 
       match /pages/{pageId} {
-        // Publicly readable for SEO if marked public OR if owner
-        allow read: if resource.data.isPublic == true || isOwner(resource.data.ownerId) || isAdmin();
+        // Publicly readable for SEO if marked public OR if owner/admin
+        allow read: if resource.data.isPublic == true || isProjectOwner(projectId) || isAdmin();
         
-        // Owner/Admin write access with safety for creation
-        allow write: if isSignedIn() && (
-          isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || 
-          isAdmin() ||
-          (resource != null && resource.data.ownerId == null && request.resource.data.ownerId == request.auth.uid)
-        );
+        // Owner/Admin write access
+        allow write: if isProjectOwner(projectId) || isAdmin();
       }
 
       match /generationRuns/{runId} {
-        allow read, write: if isSignedIn() && (
-          isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || 
-          isAdmin()
-        );
+        allow read, write: if isProjectOwner(projectId) || isAdmin();
       }
 
       match /leads/{leadId} {
         // Leads can be created publicly by any user visiting a feed page
         allow create: if true;
         // Only owner or admin can manage
-        allow read, update, delete: if isSignedIn() && (
-          isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || 
-          isAdmin()
-        );
+        allow read, update, delete: if isProjectOwner(projectId) || isAdmin();
       }
 
       match /customDomains/{domainId} {
-        allow read, write: if isSignedIn() && (
-          isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || 
-          isAdmin()
-        );
+        allow read, write: if isProjectOwner(projectId) || isAdmin();
       }
 
       match /aiUsageLogs/{logId} {
-        allow read, write: if isSignedIn() && (
-          isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || 
-          isAdmin()
-        );
+        allow read, write: if isProjectOwner(projectId) || isAdmin();
       }
 
       match /copilotSessions/{sessionId} {
-        allow read, write: if isSignedIn() && (
-          isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || 
-          isAdmin()
-        );
+        allow read, write: if isProjectOwner(projectId) || isAdmin();
         
         match /messages/{messageId} {
-          allow read, write: if isSignedIn() && (
-            isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || 
-            isAdmin()
-          );
+          allow read, write: if isProjectOwner(projectId) || isAdmin();
         }
         
         match /drafts/{draftId} {
-          allow read, write: if isSignedIn() && (
-            isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || 
-            isAdmin()
-          );
+          allow read, write: if isProjectOwner(projectId) || isAdmin();
         }
       }
     }

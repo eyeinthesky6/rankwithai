@@ -34,6 +34,7 @@ export default function PublicFeedPage() {
     return query(
       collection(db, 'projects', project.id, 'pages'),
       where('slug', '==', pageSlug),
+      where('isPublic', '==', true), // Required for visitors to list under new rules
       limit(1)
     );
   }, [db, project, pageSlug]);
