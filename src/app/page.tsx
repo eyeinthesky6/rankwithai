@@ -13,6 +13,7 @@ export default function LandingPage() {
   const router = useRouter();
 
   useEffect(() => {
+    // Redirect to dashboard if logged in
     if (user && !isUserLoading) {
       router.push('/dashboard');
     }
@@ -31,10 +32,12 @@ export default function LandingPage() {
           <div className="flex items-center gap-4">
             <ThemeToggle />
             {isUserLoading ? (
-              <Button size="sm" variant="ghost" disabled className="rounded-xl"><Loader2 className="h-4 w-4 animate-spin" /></Button>
+              <Button size="sm" variant="ghost" disabled className="rounded-xl">
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </Button>
             ) : user ? (
               <Link href="/dashboard">
-                <Button size="sm" className="font-bold rounded-xl">Go to Dashboard</Button>
+                <Button size="sm" className="font-bold rounded-xl">Dashboard</Button>
               </Link>
             ) : (
               <Link href="/login">

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useAuth, useUser } from '@/firebase';
@@ -17,14 +16,20 @@ export default function LoginPage() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
+    // Redirect once user is detected
     if (user && !isUserLoading) {
       router.push('/dashboard');
     }
   }, [user, isUserLoading, router]);
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     setIsLoggingIn(true);
-    initiateGoogleSignIn(auth);
+    try {
+      await initiateGoogleSignIn(auth);
+    } catch (e) {
+      console.error("Login trigger failed:", e);
+      setIsLoggingIn(false);
+    }
   };
 
   return (
@@ -42,9 +47,9 @@ export default function LoginPage() {
             <div className="mx-auto w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-4">
               <Sparkles className="h-6 w-6" />
             </div>
-            <CardTitle className="text-3xl font-black tracking-tighter">Welcome Back</CardTitle>
+            <CardTitle className="text-3xl font-black tracking-tighter">Welcome</CardTitle>
             <CardDescription className="text-base font-medium">
-              Sign in to manage your AI search presence.
+              Sign in with Google to manage your AI search presence.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 pt-4">
@@ -85,7 +90,7 @@ export default function LoginPage() {
                 <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground font-bold">Secure Access</span>
+                <span className="bg-background px-2 text-muted-foreground font-bold">Secure Redirect</span>
               </div>
             </div>
 
