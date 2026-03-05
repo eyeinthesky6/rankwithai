@@ -29,7 +29,7 @@ export function CopilotPanel({ project, onApplyDraft }: { project?: any, onApply
 
     const initializeSession = async () => {
       const sessionRef = await addDoc(collection(db, 'projects', project.id, 'copilotSessions'), {
-        ownerId: user.uid,
+        ownerUid: user.uid,
         projectId: project.id,
         status: 'active',
         createdAt: serverTimestamp()
@@ -54,7 +54,7 @@ export function CopilotPanel({ project, onApplyDraft }: { project?: any, onApply
       // Persist user message
       await addDoc(collection(db, 'projects', project.id, 'copilotSessions', sessionId, 'messages'), {
         ...userMessage,
-        ownerId: user.uid,
+        ownerUid: user.uid,
         createdAt: serverTimestamp()
       });
 
@@ -71,7 +71,7 @@ export function CopilotPanel({ project, onApplyDraft }: { project?: any, onApply
       // Persist assistant message
       await addDoc(collection(db, 'projects', project.id, 'copilotSessions', sessionId, 'messages'), {
         ...assistantMessage,
-        ownerId: user.uid,
+        ownerUid: user.uid,
         createdAt: serverTimestamp()
       });
 
@@ -82,7 +82,7 @@ export function CopilotPanel({ project, onApplyDraft }: { project?: any, onApply
         await addDoc(collection(db, 'projects', project.id, 'copilotSessions', sessionId, 'drafts'), {
           draftJson: result,
           confidenceNotes: result.confidenceNotes || '',
-          ownerId: user.uid,
+          ownerUid: user.uid,
           createdAt: serverTimestamp()
         });
       }

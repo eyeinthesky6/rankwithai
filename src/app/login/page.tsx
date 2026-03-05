@@ -20,7 +20,7 @@ export default function LoginPage() {
     if (user && !isUserLoading) {
       router.push('/dashboard');
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, router, auth]);
 
   const handleGoogleLogin = async () => {
     setIsLoggingIn(true);

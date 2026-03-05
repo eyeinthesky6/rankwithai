@@ -19,6 +19,8 @@ const DetectHostOutputSchema = z.object({
   reasoning: z.string().describe('Short explanation of the detection')
 });
 
+type DetectHostOutput = z.infer<typeof DetectHostOutputSchema>;
+
 export async function detectHost(input: z.infer<typeof DetectHostInputSchema>) {
   return detectHostFlow(input);
 }
@@ -29,7 +31,7 @@ const detectHostFlow = ai.defineFlow(
     inputSchema: DetectHostInputSchema,
     outputSchema: DetectHostOutputSchema,
   },
-  async (input) => {
+  async (input): Promise<DetectHostOutput> => {
     try {
       // Best-effort header fetch
       const response = await fetch(input.url, { 
@@ -57,15 +59,18 @@ const detectHostFlow = ai.defineFlow(
       });
 
       return {
-        ...output!,
-        headers: filteredHeaders // Return the filtered set for UI feedback
+        host: output?.host ?? 'Unknown',
+        headers: filteredHeaders,
+        confidence: output?.confidence ?? 0,
+        reasoning: output?.reasoning ?? 'Could not determine hosting platform'
       };
-    } catch (e: any) {
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
       return {
-        host: 'Unknown',
+        host: 'Unknown' as const,
         headers: {},
         confidence: 0,
-        reasoning: `Could not reach site: ${e.message}`
+        reasoning: `Could not reach site: ${errorMessage}`
       };
     }
   }

@@ -7,7 +7,7 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "ownerId": { "type": "string" },
+        "ownerUid": { "type": "string" },
         "name": { "type": "string" },
         "slug": { "type": "string" },
         "website": { "type": "string", "format": "uri" },
@@ -42,7 +42,7 @@
           }
         }
       },
-      "required": ["id", "ownerId", "name", "slug", "website", "niche", "createdAt"]
+      "required": ["id", "ownerUid", "name", "slug", "website", "niche", "createdAt"]
     },
     "UserProfile": {
       "title": "UserProfile",
@@ -94,7 +94,7 @@
       "properties": {
         "id": { "type": "string" },
         "projectId": { "type": "string" },
-        "ownerId": { "type": "string" },
+        "ownerUid": { "type": "string" },
         "actionType": { "type": "string" },
         "tokensEstimated": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" },
@@ -108,7 +108,7 @@
       "properties": {
         "id": { "type": "string" },
         "projectId": { "type": "string" },
-        "ownerId": { "type": "string" },
+        "ownerUid": { "type": "string" },
         "requestedDomain": { "type": "string" },
         "status": { "type": "string", "enum": ["REQUESTED", "VERIFYING", "VERIFIED", "ACTIVE", "ERROR"] },
         "verificationToken": { "type": "string" },
@@ -118,7 +118,7 @@
         "activatedAt": { "type": "string", "format": "date-time" },
         "lastError": { "type": "string" }
       },
-      "required": ["projectId", "ownerId", "requestedDomain", "status", "verificationToken", "createdAt"]
+      "required": ["projectId", "ownerUid", "requestedDomain", "status", "verificationToken", "createdAt"]
     },
     "BrandMemory": {
       "title": "BrandMemory",
@@ -154,7 +154,7 @@
       "properties": {
         "id": { "type": "string" },
         "projectId": { "type": "string" },
-        "ownerId": { "type": "string" },
+        "ownerUid": { "type": "string" },
         "slug": { "type": "string" },
         "type": { "type": "string", "enum": ["Service+Location", "Service+Industry", "BuyerQuestion"] },
         "seoTitle": { "type": "string" },
@@ -204,7 +204,7 @@
       "properties": {
         "id": { "type": "string" },
         "projectId": { "type": "string" },
-        "ownerId": { "type": "string" },
+        "ownerUid": { "type": "string" },
         "pageSlug": { "type": "string" },
         "name": { "type": "string" },
         "email": { "type": "string", "format": "email" },
@@ -212,7 +212,7 @@
         "status": { "type": "string", "enum": ["New", "Contacted", "Closed"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["projectId", "ownerId", "pageSlug", "name", "email", "createdAt"]
+      "required": ["projectId", "ownerUid", "pageSlug", "name", "email", "createdAt"]
     },
     "GenerationRun": {
       "title": "GenerationRun",
@@ -221,7 +221,7 @@
       "properties": {
         "id": { "type": "string" },
         "projectId": { "type": "string" },
-        "ownerId": { "type": "string" },
+        "ownerUid": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" },
         "status": { "type": "string", "enum": ["started", "completed", "failed", "aborted"] },
         "requestedCount": { "type": "number" },
@@ -240,7 +240,7 @@
       "properties": {
         "id": { "type": "string" },
         "projectId": { "type": "string" },
-        "ownerId": { "type": "string" },
+        "ownerUid": { "type": "string" },
         "status": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
@@ -251,7 +251,7 @@
       "properties": {
         "id": { "type": "string" },
         "sessionId": { "type": "string" },
-        "ownerId": { "type": "string" },
+        "ownerUid": { "type": "string" },
         "role": { "type": "string", "enum": ["user", "assistant"] },
         "content": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
@@ -263,7 +263,7 @@
       "properties": {
         "id": { "type": "string" },
         "sessionId": { "type": "string" },
-        "ownerId": { "type": "string" },
+        "ownerUid": { "type": "string" },
         "draftJson": { "type": "object" },
         "confidenceNotes": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },

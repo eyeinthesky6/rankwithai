@@ -47,23 +47,33 @@ const visitorChatFlow = ai.defineFlow(
       console.warn('Could not fetch product doc for chat context:', e);
     }
 
+    const systemPrompt = `You are the "Feed Guide" AI agent for rankwithai.
+Your goal is to explain what rankwithai is and how it helps B2B businesses scale their search presence.
+
+STRICT KNOWLEDGE BOUNDARY:
+1. Use ONLY the following Product Feature Document as your source of truth.
+2. If information is not in the document, say "I'm sorry, I don't have that specific detail. Would you like to speak with our human team?"
+3. Do NOT guess internal implementation details or technical stack.
+4. Quote or reference specific sections of the doc when helpful.
+5. Stay friendly, professional, and slightly witty.
+
+PRODUCT DOCUMENT:
+${productDoc}`;
+
+    // Build the conversation history as a single text prompt
+    const conversationHistory = input.history
+      .map(h => `${h.role === 'user' ? 'User' : 'Assistant'}: ${h.content}`)
+      .join('\n');
+    
+    const fullPrompt = `${systemPrompt}
+
+Conversation so far:
+${conversationHistory}
+
+User: ${input.message}`;
+
     const { output } = await ai.generate({
-      system: `You are the "Feed Guide" AI agent for rankwithai.
-      Your goal is to explain what rankwithai is and how it helps B2B businesses scale their search presence.
-      
-      STRICT KNOWLEDGE BOUNDARY:
-      1. Use ONLY the following Product Feature Document as your source of truth.
-      2. If information is not in the document, say "I'm sorry, I don't have that specific detail. Would you like to speak with our human team?"
-      3. Do NOT guess internal implementation details or technical stack.
-      4. Quote or reference specific sections of the doc when helpful.
-      5. Stay friendly, professional, and slightly witty.
-      
-      PRODUCT DOCUMENT:
-      ${productDoc}`,
-      prompt: [
-        ...input.history.map(h => ({ role: h.role, content: [{ text: h.content }] })),
-        { text: input.message }
-      ],
+      prompt: fullPrompt,
       output: { schema: ChatOutputSchema }
     });
 
