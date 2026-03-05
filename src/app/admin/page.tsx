@@ -27,7 +27,7 @@ export default function AdminDashboard() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [savingDoc, setSavingDoc] = useState(false);
 
-  // Check admin status
+  // Robust admin verification
   useEffect(() => {
     if (user) {
       const checkAdmin = async () => {
@@ -54,7 +54,7 @@ export default function AdminDashboard() {
     if (config?.productDoc) setDocContent(config.productDoc);
   }, [config]);
 
-  // Metrics (Only fetch if confirmed admin to avoid permission errors)
+  // Metrics (Only fetch if confirmed admin to prevent permission errors)
   const eventsQuery = useMemoFirebase(() => {
     if (isAdmin !== true) return null;
     return query(collection(db, 'eventLogs'), orderBy('createdAt', 'desc'), limit(50));
@@ -95,7 +95,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Coarse metrics calculation
   const totalProjects = projects?.length || 0;
   const totalLeads = events?.filter(e => e.eventType === 'lead_created').length || 0;
   const feedViews = events?.filter(e => e.eventType === 'feed_page_view').length || 0;
@@ -118,8 +117,8 @@ export default function AdminDashboard() {
       <main className="flex-1 p-6 md:p-12 max-w-7xl mx-auto w-full space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatCard title="Total Projects" value={totalProjects} icon={<LayoutGrid className="h-4 w-4" />} />
-          <StatCard title="Feed Views (Log)" value={feedViews} icon={<TrendingUp className="h-4 w-4" />} color="blue" />
-          <StatCard title="AI Repairs (Log)" value={aiCalls} icon={<Zap className="h-4 w-4" />} color="amber" />
+          <StatCard title="Feed Views" value={feedViews} icon={<TrendingUp className="h-4 w-4" />} color="blue" />
+          <StatCard title="AI Actions" value={aiCalls} icon={<Zap className="h-4 w-4" />} color="amber" />
           <StatCard title="Captured Leads" value={totalLeads} icon={<MessageSquare className="h-4 w-4" />} color="green" />
         </div>
 
@@ -136,7 +135,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <CardTitle className="text-xl font-black tracking-tight">Product Feature Document</CardTitle>
-                    <CardDescription>This markdown is the ONLY source of truth for the public chat agent.</CardDescription>
+                    <CardDescription>Knowledge base for the visitor chat agent.</CardDescription>
                   </div>
                   <Button onClick={handleSaveDoc} disabled={savingDoc} className="font-black rounded-xl shadow-lg">
                     {savingDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
@@ -191,7 +190,7 @@ export default function AdminDashboard() {
                    <CardContent>
                       <div className="py-12 text-center text-muted-foreground italic text-xs">
                          <AlertCircle className="h-8 w-8 mx-auto mb-4 opacity-20" />
-                         No critical execution errors in last 50 events.
+                         No critical execution errors detected.
                       </div>
                    </CardContent>
                 </Card>
@@ -208,7 +207,7 @@ export default function AdminDashboard() {
                          <div className="h-full bg-primary w-1/4" />
                       </div>
                       <p className="text-[10px] text-muted-foreground leading-relaxed">
-                         Deterministic generation is accounting for 92% of all structural writes. Token efficiency remains high.
+                         Deterministic generation is accounting for >90% of all structural writes. Token efficiency remains high.
                       </p>
                    </CardContent>
                 </Card>

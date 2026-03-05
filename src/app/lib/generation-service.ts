@@ -17,6 +17,10 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
   const ownerId = project.ownerId;
   const projectId = project.id;
 
+  if (!ownerId) {
+    throw new Error("Project owner identity missing. Cannot generate pages.");
+  }
+
   const currentHash = JSON.stringify(brandMemory).split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0).toString();
 
   const runRef = await addDoc(collection(db, 'projects', projectId, 'generationRuns'), {
@@ -92,7 +96,8 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
         contentScore: quality.score,
         validationErrors: quality.issues,
         version: 1,
-        isStale: false
+        isStale: false,
+        isPublic: true // Explicitly enable public serving
       });
       totalGenerated++;
     }

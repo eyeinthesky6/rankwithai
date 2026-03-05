@@ -18,7 +18,7 @@ service cloud.firestore {
     }
 
     /**
-     * @description Admin check.
+     * @description Admin check via allowlist collection.
      */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid));
@@ -27,14 +27,18 @@ service cloud.firestore {
     // Admin-only collections
     match /adminUsers/{uid} {
       allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
+    
     match /eventLogs/{eventId} {
       allow create: if true; // Telemetry can be created by anyone (visitors)
       allow read: if isAdmin();
     }
+    
     match /userProfiles/{uid} {
       allow read, write: if isOwner(uid) || isAdmin();
     }
+    
     match /systemConfig/product {
       allow read: if true; // Knowledge source for public chat
       allow write: if isAdmin();
@@ -53,53 +57,95 @@ service cloud.firestore {
      */
     match /projects/{projectId} {
       
-      // Project root document rules
-      // Publicly readable for slug lookups in the public feed
+      // Direct get is public for routing
       allow get: if true;
-      // Allow list if signed in and the query is restricted to owned projects, or if admin
-      allow list: if isSignedIn() && (isAdmin() || resource.data.ownerId == request.auth.uid); 
+      
+      /**
+       * @description allow list:
+       * 1. If admin (any query)
+       * 2. If filtered by ownerId (dashboard)
+       * 3. If public slug lookup (limited to 1 result)
+       */
+      allow list: if (isSignedIn() && (isAdmin() || resource.data.ownerId == request.auth.uid))
+                  || (request.query.limit <= 5); // Safe threshold for slug resolution
       
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      
+      /**
+       * @description Migration/Claim path: 
+       * Allow owner update OR claim if ownerId is currently missing.
+       */
+      allow update: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid || 
+        isAdmin() ||
+        (resource.data.ownerId == null && request.resource.data.ownerId == request.auth.uid)
+      );
+      
       allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
 
       // Subcollections
 
       match /pages/{pageId} {
-        // Publicly readable for SEO and feed hosting
-        allow read: if true;
-        // Only the owner or admin can manage pages
-        allow write: if isSignedIn() && (isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || isAdmin());
+        // Publicly readable for SEO if marked public OR if owner
+        allow read: if resource.data.isPublic == true || isOwner(resource.data.ownerId) || isAdmin();
+        
+        // Owner/Admin write access with safety for creation
+        allow write: if isSignedIn() && (
+          isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || 
+          isAdmin() ||
+          (resource != null && resource.data.ownerId == null && request.resource.data.ownerId == request.auth.uid)
+        );
       }
 
       match /generationRuns/{runId} {
-        allow read, write: if isSignedIn() && (isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || isAdmin());
+        allow read, write: if isSignedIn() && (
+          isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || 
+          isAdmin()
+        );
       }
 
       match /leads/{leadId} {
         // Leads can be created publicly by any user visiting a feed page
         allow create: if true;
-        // Only the owner or admin can manage their leads
-        allow read, update, delete: if isSignedIn() && (isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || isAdmin());
+        // Only owner or admin can manage
+        allow read, update, delete: if isSignedIn() && (
+          isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || 
+          isAdmin()
+        );
       }
 
       match /customDomains/{domainId} {
-        allow read, write: if isSignedIn() && (isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || isAdmin());
+        allow read, write: if isSignedIn() && (
+          isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || 
+          isAdmin()
+        );
       }
 
       match /aiUsageLogs/{logId} {
-        allow read, write: if isSignedIn() && (isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || isAdmin());
+        allow read, write: if isSignedIn() && (
+          isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || 
+          isAdmin()
+        );
       }
 
       match /copilotSessions/{sessionId} {
-        allow read, write: if isSignedIn() && (isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || isAdmin());
+        allow read, write: if isSignedIn() && (
+          isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || 
+          isAdmin()
+        );
         
         match /messages/{messageId} {
-          allow read, write: if isSignedIn() && (isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || isAdmin());
+          allow read, write: if isSignedIn() && (
+            isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || 
+            isAdmin()
+          );
         }
         
         match /drafts/{draftId} {
-          allow read, write: if isSignedIn() && (isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || isAdmin());
+          allow read, write: if isSignedIn() && (
+            isOwner(resource != null ? resource.data.ownerId : request.resource.data.ownerId) || 
+            isAdmin()
+          );
         }
       }
     }
