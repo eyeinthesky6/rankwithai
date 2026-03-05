@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { 
-  collection, query, orderBy, limit, doc, setDoc, getDocs, where 
+  collection, query, orderBy, limit, doc, setDoc, getDoc, getDocs, where 
 } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -30,10 +30,9 @@ export default function AdminDashboard() {
     if (user) {
       const checkAdmin = async () => {
         try {
-          // Query adminUsers specifically by document ID (__name__) to verify role
-          const q = query(collection(db, 'adminUsers'), where('__name__', '==', user.uid));
-          const adminDoc = await getDocs(q);
-          setIsAdmin(!adminDoc.empty);
+          const adminDocRef = doc(db, 'adminUsers', user.uid);
+          const adminSnap = await getDoc(adminDocRef);
+          setIsAdmin(adminSnap.exists());
         } catch (e) {
           console.error("Admin check failed:", e);
           setIsAdmin(false);

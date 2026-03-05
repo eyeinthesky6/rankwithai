@@ -17,17 +17,16 @@ service cloud.firestore {
     }
 
     /**
-     * @description Helper to check if the authenticated user owns the parent project.
+     * @description Helper to check if the authenticated user owns the document.
+     * Assumes document has an 'ownerId' field.
      */
-    function isProjectOwner(projectId) {
-      return isSignedIn() && (
-        get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid
-      );
+    function isOwner() {
+      return isSignedIn() && (resource == null || resource.data.ownerId == request.auth.uid);
     }
 
     // Admin-only collections
     match /adminUsers/{uid} {
-      allow read, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
     
@@ -62,56 +61,52 @@ service cloud.firestore {
       
       /**
        * @description allow list logic:
-       * 1. Authenticated users can list their OWN projects (requires filter where ownerId == uid).
-       * 2. Admins can list any project.
-       * 3. Public slug resolution: allowed if the query limit is 1 (prevents scraping).
+       * 1. Slug resolution: allowed if the query limit is 1 (public).
+       * 2. Owners: can list their own projects.
+       * 3. Admins: can list any project.
        */
-      allow list: if (isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin()))
-                  || (request.query.limit <= 1);
+      allow list: if (request.query.limit <= 1)
+                  || (isSignedIn() && (isOwner() || isAdmin()));
       
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       
-      allow update: if isSignedIn() && (
-        resource.data.ownerId == request.auth.uid || 
-        isAdmin() ||
-        (resource.data.ownerId == null && request.resource.data.ownerId == request.auth.uid)
-      );
+      allow update: if isSignedIn() && (isOwner() || isAdmin());
       
-      allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && (isOwner() || isAdmin());
 
       // Subcollections
       match /pages/{pageId} {
-        allow read: if (resource.data.isPublic == true) || isProjectOwner(projectId) || isAdmin();
-        allow list: if (resource.data.isPublic == true && request.query.limit <= 5) || isProjectOwner(projectId) || isAdmin();
-        allow write: if isProjectOwner(projectId) || isAdmin();
+        allow read: if (resource.data.isPublic == true) || isOwner() || isAdmin();
+        allow list: if (resource.data.isPublic == true && request.query.limit <= 10) || isOwner() || isAdmin();
+        allow write: if isOwner() || isAdmin();
       }
 
       match /generationRuns/{runId} {
-        allow read, write: if isProjectOwner(projectId) || isAdmin();
+        allow read, write: if isOwner() || isAdmin();
       }
 
       match /leads/{leadId} {
         allow create: if true;
-        allow read, update, delete: if isProjectOwner(projectId) || isAdmin();
+        allow read, update, delete: if isOwner() || isAdmin();
       }
 
       match /customDomains/{domainId} {
-        allow read, write: if isProjectOwner(projectId) || isAdmin();
+        allow read, write: if isOwner() || isAdmin();
       }
 
       match /aiUsageLogs/{logId} {
-        allow read, write: if isProjectOwner(projectId) || isAdmin();
+        allow read, write: if isOwner() || isAdmin();
       }
 
       match /copilotSessions/{sessionId} {
-        allow read, write: if isProjectOwner(projectId) || isAdmin();
+        allow read, write: if isOwner() || isAdmin();
         
         match /messages/{messageId} {
-          allow read, write: if isProjectOwner(projectId) || isAdmin();
+          allow read, write: if isOwner() || isAdmin();
         }
         
         match /drafts/{draftId} {
-          allow read, write: if isProjectOwner(projectId) || isAdmin();
+          allow read, write: if isOwner() || isAdmin();
         }
       }
     }
