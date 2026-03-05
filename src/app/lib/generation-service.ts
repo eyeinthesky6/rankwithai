@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Firestore, collection, doc, setDoc, addDoc, serverTimestamp, getDocs, query, where, writeBatch, updateDoc, increment } from 'firebase/firestore';
@@ -96,7 +97,7 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
         validationErrors: quality.issues,
         version: 1,
         isStale: false,
-        isPublic: true // Explicitly enable public serving
+        isPublic: true 
       });
       totalGenerated++;
     }

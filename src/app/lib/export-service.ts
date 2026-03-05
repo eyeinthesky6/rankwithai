@@ -11,7 +11,7 @@ export async function exportProjectToZip(db: Firestore, project: any) {
   const zip = new JSZip();
   const pagesQuery = query(
     collection(db, 'projects', project.id, 'pages'),
-    where('ownerId', '==', project.ownerId)
+    where('ownerUid', '==', project.ownerUid)
   );
   
   const pagesSnap = await getDocs(pagesQuery);
