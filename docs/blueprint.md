@@ -1,4 +1,8 @@
-# **App Name**: AI Feed Engine (Lite)
+#443D6B`), symbolizing professionalism and clarity.
+- Secondary color: Slate Gray (`#64748B`), used for secondary actions and supporting text.
+- Background color: A very light, subtle purplish-gray (`#F3F3F5`).
+- Accent color: A medium blue (`#4791CC
+# **App Name**: rankwithai
 
 ## Core Features:
 

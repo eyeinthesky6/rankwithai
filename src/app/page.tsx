@@ -1,11 +1,10 @@
-
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Sparkles, ShieldCheck, Zap, Globe, ArrowRight, BarChart3, ChevronRight, LayoutGrid, CreditCard, Loader2 } from 'lucide-react';
-import { useUser, initiateAnonymousSignIn, useAuth } from '@/firebase';
+import { useUser, initiateAnonymousSignIn, initiateGoogleSignIn, useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -33,6 +32,10 @@ export default function LandingPage() {
     }
   };
 
+  const handleGoogleLogin = () => {
+    initiateGoogleSignIn(auth);
+  };
+
   return (
     <div className="flex-1 flex flex-col hero-gradient selection:bg-primary/10">
       {/* Navigation */}
@@ -57,7 +60,7 @@ export default function LandingPage() {
                 <Button size="sm" className="font-bold rounded-xl">Dashboard</Button>
               </Link>
             ) : (
-              <Button onClick={() => handleStart()} size="sm" className="font-bold rounded-xl">Get Started</Button>
+              <Button onClick={handleGoogleLogin} size="sm" variant="outline" className="font-bold rounded-xl">Sign In</Button>
             )}
           </div>
         </div>
@@ -77,14 +80,24 @@ export default function LandingPage() {
             The only SEO engine that respects your budget. Generate thousands of authoritative, service-location feeds using deterministic-first templates.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
-            <Button 
-              onClick={() => handleStart()} 
-              size="lg" 
-              className="h-14 px-10 text-lg font-bold rounded-2xl shadow-xl hover:scale-105 transition-all"
-              disabled={isUserLoading}
-            >
-              {isUserLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Launch My Engine <ArrowRight className="ml-2 h-5 w-5" /></>}
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button 
+                onClick={() => handleStart()} 
+                size="lg" 
+                className="h-14 px-10 text-lg font-bold rounded-2xl shadow-xl hover:scale-105 transition-all w-full"
+                disabled={isUserLoading}
+              >
+                {isUserLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Launch My Engine <ArrowRight className="ml-2 h-5 w-5" /></>}
+              </Button>
+              {!user && !isUserLoading && (
+                <button 
+                  onClick={handleGoogleLogin}
+                  className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Or sign in with Google
+                </button>
+              )}
+            </div>
             <Link href="/pricing">
               <Button variant="outline" size="lg" className="h-14 px-10 text-lg font-bold rounded-2xl">
                 View Pricing <CreditCard className="ml-2 h-5 w-5" />

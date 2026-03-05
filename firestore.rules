@@ -55,18 +55,22 @@ service cloud.firestore {
        * @description list rules:
        * 1. Public resolution: allow listing with limit 1 (for slug lookups).
        * 2. Owner listing: allow if the query filters by the user's UID.
+       * 3. Admin: allow broad listing.
        */
-      allow list: if (request.query.limit <= 1)
-                  || (isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin()));
+      allow list: if (request.query.limit <= 1);
+      allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid);
+      allow list: if isAdmin();
       
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
 
       // Subcollections
       match /pages/{pageId} {
-        allow read: if (resource.data.isPublic == true) || (isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin()));
-        allow list: if (request.query.limit <= 10 && resource.data.isPublic == true) 
-                    || (isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin()));
+        // Publicly readable if marked as public
+        allow read: if (resource.data.isPublic == true);
+        // Owner/Admin access
+        allow read, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        // Writing
         allow write: if isSignedIn() && (request.resource.data.ownerId == request.auth.uid || isAdmin());
       }
 
