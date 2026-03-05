@@ -32,6 +32,7 @@ export default function Dashboard() {
 
   // UseMemoFirebase ensures the query object is stable to prevent re-subscription loops
   // We explicitly check for user.uid to ensure the query is only built when identity is certain
+  // AND we filter by ownerId to satisfy Firestore Security Rules (Rules-as-Filters)
   const projectsQuery = useMemoFirebase(() => {
     if (!user?.uid) return null;
     
@@ -48,7 +49,10 @@ export default function Dashboard() {
   if (isUserLoading || (projectsLoading && !projects)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-sm font-bold text-muted-foreground">Synchronizing your AI presence...</p>
+        </div>
       </div>
     );
   }
@@ -72,7 +76,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-2 text-xs font-bold text-muted-foreground px-3 py-1 bg-muted rounded-full">
               <UserIcon className="h-3 w-3" />
-              {user.isAnonymous ? 'ANONYMOUS' : user.email || user.uid.slice(0, 8)}
+              {user.isAnonymous ? 'ANONYMOUS SESSION' : user.email || user.uid.slice(0, 8)}
             </div>
             <ThemeToggle />
             <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign Out">
@@ -85,8 +89,8 @@ export default function Dashboard() {
       <main className="flex-1 space-y-8 p-6 md:p-12 max-w-7xl mx-auto w-full">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-black tracking-tighter">My Projects</h2>
-            <p className="text-muted-foreground font-medium">Manage your B2B content feeds and generation runs.</p>
+            <h2 className="text-3xl font-black tracking-tighter">My AI Projects</h2>
+            <p className="text-muted-foreground font-medium">Manage your chatbot-ready content feeds.</p>
           </div>
           <div className="flex gap-3">
             <Link href="/pricing">
@@ -98,7 +102,7 @@ export default function Dashboard() {
             <Link href="/projects/new">
               <Button className="font-bold rounded-xl shadow-lg shadow-primary/20 h-11 px-6">
                 <PlusCircle className="mr-2 h-4 w-4" />
-                New Project
+                New AI Feed
               </Button>
             </Link>
           </div>
@@ -109,16 +113,16 @@ export default function Dashboard() {
             <Card className="col-span-full border-dashed p-12 text-center bg-transparent rounded-[2rem]">
               <div className="flex flex-col items-center gap-4">
                 <div className="p-6 bg-primary/10 rounded-3xl">
-                  <LayoutGrid className="h-12 w-12 text-primary" />
+                  <Globe className="h-12 w-12 text-primary" />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-xl font-bold">No projects yet</h3>
+                  <h3 className="text-xl font-bold">Your presence is empty</h3>
                   <p className="text-muted-foreground max-w-xs mx-auto text-sm">
-                    Create your first project to start generating AI-optimized content feeds.
+                    Create your first AI feed to start appearing in chatbot search results.
                   </p>
                 </div>
                 <Link href="/projects/new" className="mt-4">
-                  <Button variant="outline" className="rounded-xl font-bold">Get Started</Button>
+                  <Button variant="outline" className="rounded-xl font-bold">Initialize AI Feed</Button>
                 </Link>
               </div>
             </Card>
@@ -134,22 +138,22 @@ export default function Dashboard() {
           <div className="flex-1 space-y-6 relative z-10">
             <div className="inline-flex items-center rounded-full bg-primary/10 px-4 py-1.5 text-xs font-bold text-primary uppercase tracking-widest border border-primary/20">
               <Zap className="mr-2 h-3.5 w-3.5" />
-              The Deterministic Edge
+              AI Discovery Engine
             </div>
-            <h3 className="text-4xl font-black tracking-tighter">Scale with Certainty.</h3>
+            <h3 className="text-4xl font-black tracking-tighter">Become the AI's First Choice.</h3>
             <p className="text-muted-foreground leading-relaxed font-medium text-lg">
-              Generic AI tools hallucinate details and waste tokens. rankwithai uses deterministic templates to fix the structure, calling LLMs only for specialized body content. 
-              <strong> High volume. Low cost. Perfect brand integrity.</strong>
+              Most websites are invisible to LLMs. We fix that by building high-authority content feeds that chatbots trust and users love. 
+              <strong> Be the business that gets recommended.</strong>
             </p>
           </div>
           <div className="w-full lg:w-2/5 aspect-[4/3] bg-background/50 backdrop-blur-md rounded-3xl shadow-inner border border-border flex items-center justify-center p-8 relative group">
             <div className="text-left space-y-2 w-full font-mono text-[10px] md:text-xs">
-              <div className="text-primary/40">&lt;div class="page-skeleton"&gt;</div>
-              <div className="pl-4 text-primary">h1: Service in Location</div>
-              <div className="pl-4 text-muted-foreground/60">// Deterministic structure applied</div>
-              <div className="pl-4 text-orange-500">body: [AI BATCH GENERATED CONTENT]</div>
-              <div className="pl-4 text-primary/40">faq: [SCHEMA MARKUP AUTO-INJECTED]</div>
-              <div className="text-primary/40">&lt;/div&gt;</div>
+              <div className="text-primary/40">&lt;ai-feed status="searchable"&gt;</div>
+              <div className="pl-4 text-primary">authority: HIGH</div>
+              <div className="pl-4 text-muted-foreground/60">// AI-trusted schema injected</div>
+              <div className="pl-4 text-orange-500">leads: [ACTIVE CAPTURE ENABLED]</div>
+              <div className="pl-4 text-primary/40">discovery: [SEARCHABLE BY CHATBOTS]</div>
+              <div className="text-primary/40">&lt;/ai-feed&gt;</div>
               <div className="absolute inset-0 bg-primary/5 rounded-3xl group-hover:bg-transparent transition-colors" />
             </div>
           </div>

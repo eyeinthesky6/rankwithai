@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Sparkles, ShieldCheck, Zap, Globe, ArrowRight, BarChart3, ChevronRight, LayoutGrid, CreditCard, Loader2 } from 'lucide-react';
-import { useUser, initiateAnonymousSignIn, initiateGoogleSignIn, useAuth } from '@/firebase';
+import { Sparkles, ShieldCheck, Zap, Globe, ArrowRight, LayoutGrid, Loader2, MessageSquare } from 'lucide-react';
+import { useUser, initiateGoogleSignIn, useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -19,36 +19,18 @@ export default function LandingPage() {
     }
   }, [user, isUserLoading, router]);
 
-  const handleStart = (e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    
-    if (!user) {
-      initiateAnonymousSignIn(auth);
-    } else {
-      router.push('/dashboard');
-    }
-  };
-
-  const handleGoogleLogin = () => {
+  const handleStart = () => {
     initiateGoogleSignIn(auth);
   };
 
   return (
     <div className="flex-1 flex flex-col hero-gradient selection:bg-primary/10">
-      {/* Navigation */}
       <nav className="border-b bg-background/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2 font-black text-xl tracking-tighter text-primary">
               <Sparkles className="h-6 w-6" />
               RANKWITHAI
-            </div>
-            <div className="hidden md:flex items-center gap-6">
-              <Link href="/pricing" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Pricing</Link>
-              <a href="#" className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors">Docs</a>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -57,96 +39,83 @@ export default function LandingPage() {
               <Button size="sm" variant="ghost" disabled className="rounded-xl"><Loader2 className="h-4 w-4 animate-spin" /></Button>
             ) : user ? (
               <Link href="/dashboard">
-                <Button size="sm" className="font-bold rounded-xl">Dashboard</Button>
+                <Button size="sm" className="font-bold rounded-xl">Go to Dashboard</Button>
               </Link>
             ) : (
-              <Button onClick={handleGoogleLogin} size="sm" variant="outline" className="font-bold rounded-xl">Sign In</Button>
+              <Button onClick={handleStart} size="sm" variant="outline" className="font-bold rounded-xl">Sign In</Button>
             )}
           </div>
         </div>
       </nav>
 
       <main className="flex-1">
-        {/* Hero Section */}
         <section className="max-w-7xl mx-auto px-6 pt-24 pb-32 text-center space-y-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest border border-primary/20">
             <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
-            Deterministic AI Content Generation
+            AI-Ready Search Presence
           </div>
           <h1 className="text-5xl md:text-7xl font-black leading-[1.1] tracking-tighter max-w-4xl mx-auto">
-            Scale Your B2B Search Presence <span className="text-primary">Without Hallucinations.</span>
+            Become Searchable by <span className="text-primary">AI Chatbots.</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-medium">
-            The only SEO engine that respects your budget. Generate thousands of authoritative, service-location feeds using deterministic-first templates.
+            Add AI-trusted lead capturing pages to your website and be the business that AI search engines find and recommend.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
-            <div className="flex flex-col gap-2">
-              <Button 
-                onClick={() => handleStart()} 
-                size="lg" 
-                className="h-14 px-10 text-lg font-bold rounded-2xl shadow-xl hover:scale-105 transition-all w-full"
-                disabled={isUserLoading}
-              >
-                {isUserLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Launch My Engine <ArrowRight className="ml-2 h-5 w-5" /></>}
-              </Button>
-              {!user && !isUserLoading && (
-                <button 
-                  onClick={handleGoogleLogin}
-                  className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Or sign in with Google
-                </button>
-              )}
-            </div>
-            <Link href="/pricing">
-              <Button variant="outline" size="lg" className="h-14 px-10 text-lg font-bold rounded-2xl">
-                View Pricing <CreditCard className="ml-2 h-5 w-5" />
+            <Button 
+              onClick={handleStart} 
+              size="lg" 
+              className="h-14 px-10 text-lg font-bold rounded-2xl shadow-xl hover:scale-105 transition-all w-full sm:w-auto"
+              disabled={isUserLoading}
+            >
+              {isUserLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Get AI-Ready <ArrowRight className="ml-2 h-5 w-5" /></>}
+            </Button>
+            <Link href="/pricing" className="w-full sm:w-auto">
+              <Button variant="outline" size="lg" className="h-14 px-10 text-lg font-bold rounded-2xl w-full">
+                View Pricing
               </Button>
             </Link>
           </div>
         </section>
 
-        {/* Features Grid */}
         <section className="max-w-7xl mx-auto px-6 pb-32">
           <div className="grid md:grid-cols-3 gap-8">
             <div className="p-8 rounded-[2rem] bg-card border shadow-sm space-y-4 hover:shadow-md transition-all">
               <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                <ShieldCheck className="h-6 w-6" />
+                <Globe className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold">Identity-Safe Generation</h3>
+              <h3 className="text-xl font-bold">AI-Ready Content</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Our Brand Memory architecture ensures AI never invents certifications, fake numbers, or unverifiable claims.
+                Chatbots like ChatGPT and Gemini need high-authority data to recommend your business. We build the pages they trust.
               </p>
             </div>
             <div className="p-8 rounded-[2rem] bg-card border shadow-sm space-y-4 hover:shadow-md transition-all">
-              <div className="w-12 h-12 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary">
-                <Zap className="h-6 w-6" />
+              <div className="w-12 h-12 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-600">
+                <MessageSquare className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold">Deterministic Batching</h3>
+              <h3 className="text-xl font-bold">Trusted Lead Capture</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Reduce AI credit burn by 90%. We generate structure locally and use LLMs only for high-value body content.
+                Every page we generate includes a professional inquiry form designed to turn AI-driven traffic into customers.
               </p>
             </div>
             <div className="p-8 rounded-[2rem] bg-card border shadow-sm space-y-4 hover:shadow-md transition-all">
               <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500">
-                <BarChart3 className="h-6 w-6" />
+                <Zap className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold">The Refresh Engine</h3>
+              <h3 className="text-xl font-bold">Set and Forget</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Connect search metrics to trigger auto-updates. If rank drops or CTR lags, the engine optimizes content automatically.
+                No technical skills required. Our engine handles the complexity so your business stays visible in the age of AI search.
               </p>
             </div>
           </div>
         </section>
 
-        {/* Rolling CTA */}
         <section className="bg-primary text-white py-24 relative overflow-hidden">
           <div className="max-w-4xl mx-auto px-6 text-center space-y-8 relative z-10">
-            <h2 className="text-4xl md:text-5xl font-black tracking-tighter">Ready to dominate your niche?</h2>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tighter">Ready to be the #1 recommendation?</h2>
             <p className="text-primary-foreground/80 text-lg font-medium">
-              Join B2B leaders using rankwithai to build programmatic content that actually converts.
+              Join businesses using rankwithai to build a search presence that actually works in the age of AI.
             </p>
-            <Button onClick={() => handleStart()} size="lg" variant="secondary" className="h-14 px-12 text-lg font-bold rounded-2xl bg-white text-primary hover:bg-slate-100">
+            <Button onClick={handleStart} size="lg" variant="secondary" className="h-14 px-12 text-lg font-bold rounded-2xl bg-white text-primary hover:bg-slate-100">
               Start Free Trial
             </Button>
           </div>
@@ -168,7 +137,7 @@ export default function LandingPage() {
             <a href="#" className="hover:text-primary transition-colors">Terms</a>
           </div>
           <div className="text-xs text-muted-foreground font-mono">
-            &copy; {new Date().getFullYear()} rankwithai engine
+            &copy; {new Date().getFullYear()} rankwithai
           </div>
         </div>
       </footer>

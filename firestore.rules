@@ -54,12 +54,11 @@ service cloud.firestore {
       /**
        * @description list rules:
        * 1. Public resolution: allow listing with limit 1 (for slug lookups).
-       * 2. Owner listing: allow if the query filters by the user's UID.
+       * 2. Owner listing: allow if the query filters by the user's UID (ownerId).
        * 3. Admin: allow broad listing.
        */
       allow list: if (request.query.limit <= 1);
-      allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid);
-      allow list: if isAdmin();
+      allow list: if isSignedIn() && (request.auth.uid == resource.data.ownerId || isAdmin());
       
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());

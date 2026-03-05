@@ -1,10 +1,7 @@
 
 import { MetadataRoute } from 'next';
-import { initializeFirebase } from '@/firebase';
-import { collection, getDocs, query } from 'firebase/firestore';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const { firestore } = initializeFirebase();
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://rankwithai.com';
 
   // In a real production setup, we'd query all public pages across all projects.

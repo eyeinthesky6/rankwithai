@@ -1,30 +1,30 @@
 'use client';
 import {
   Auth,
-  signInAnonymously,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
   GoogleAuthProvider,
+  signInWithRedirect,
   signInWithPopup
 } from 'firebase/auth';
 
-/** Initiate anonymous sign-in (non-blocking). */
-export function initiateAnonymousSignIn(authInstance: Auth): void {
-  signInAnonymously(authInstance);
-}
-
-/** Initiate Google Sign-In (non-blocking). */
+/** Initiate Google Sign-In (redirect flow - recommended for mobile/compat). */
 export function initiateGoogleSignIn(authInstance: Auth): void {
+  if (!authInstance) {
+    console.error('Auth instance not available');
+    return;
+  }
+  
   const provider = new GoogleAuthProvider();
-  signInWithPopup(authInstance, provider);
-}
-
-/** Initiate email/password sign-up (non-blocking). */
-export function initiateEmailSignUp(authInstance: Auth, email: string, password: string): void {
-  createUserWithEmailAndPassword(authInstance, email, password);
-}
-
-/** Initiate email/password sign-in (non-blocking). */
-export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): void {
-  signInWithEmailAndPassword(authInstance, email, password);
+  // Add any additional scopes if needed
+  provider.addScope('profile');
+  provider.addScope('email');
+  
+  // Use popup as fallback since redirect may have issues in some environments
+  try {
+    signInWithPopup(authInstance, provider).catch((error) => {
+      console.error('Popup failed, trying redirect:', error);
+      signInWithRedirect(authInstance, provider);
+    });
+  } catch (error) {
+    console.error('Google sign-in error:', error);
+  }
 }

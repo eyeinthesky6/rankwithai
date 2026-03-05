@@ -205,7 +205,7 @@ export default function AdminDashboard() {
                          <div className="h-full bg-primary w-1/4" />
                       </div>
                       <p className="text-[10px] text-muted-foreground leading-relaxed">
-                         Deterministic generation is accounting for >90% of all structural writes. Token efficiency remains high.
+                         Deterministic generation is accounting for &gt;90% of all structural writes. Token efficiency remains high.
                       </p>
                    </CardContent>
                 </Card>
