@@ -7,7 +7,5 @@ runConfig:
   memoryMiB: 512
 
 env:
-  - variable: NODE_ENV
-    value: production
   - variable: NEXT_PUBLIC_BASE_URL
     value: https://rankwithai.com
