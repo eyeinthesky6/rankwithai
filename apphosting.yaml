@@ -1,3 +1,4 @@
+
 # Settings to manage and configure a Firebase App Hosting backend.
 # https://firebase.google.com/docs/app-hosting/configure
 
@@ -12,7 +13,4 @@ env:
   - variable: NODE_ENV
     value: production
   - variable: NEXT_PUBLIC_BASE_URL
-    value: https://feeds.rankwithai.com
-
-# Explicitly identify framework for the build pack
-# App Hosting auto-detects Next.js, but explicit config ensures repeatable builds.
+    value: https://rankwithai.com

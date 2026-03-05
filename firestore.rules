@@ -11,13 +11,6 @@ service cloud.firestore {
     }
 
     /**
-     * @description Helper to check if the authenticated user is the owner of the data.
-     */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    /**
      * @description Admin check via allowlist collection.
      */
     function isAdmin() {
@@ -26,6 +19,7 @@ service cloud.firestore {
 
     /**
      * @description Helper to check if the authenticated user owns the parent project.
+     * We use a direct get for security to ensure the user actually owns the path.
      */
     function isProjectOwner(projectId) {
       return isSignedIn() && (
@@ -45,7 +39,7 @@ service cloud.firestore {
     }
     
     match /userProfiles/{uid} {
-      allow read, write: if isOwner(uid) || isAdmin();
+      allow read, write: if isSignedIn() && (request.auth.uid == uid || isAdmin());
     }
     
     match /systemConfig/product {
@@ -80,9 +74,6 @@ service cloud.firestore {
       
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       
-      /**
-       * @description Allow owner update OR claim if ownerId is currently missing.
-       */
       allow update: if isSignedIn() && (
         resource.data.ownerId == request.auth.uid || 
         isAdmin() ||
@@ -91,11 +82,14 @@ service cloud.firestore {
       
       allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
 
-      // Subcollections using inheritance or direct ownership check
+      // Subcollections using inheritance for performance
 
       match /pages/{pageId} {
         // Publicly readable for SEO if marked public OR if owner/admin
-        allow read: if resource.data.isPublic == true || isProjectOwner(projectId) || isAdmin();
+        allow read: if (resource.data.isPublic == true) || isProjectOwner(projectId) || isAdmin();
+        
+        // Slug lookup for visitors
+        allow list: if (resource.data.isPublic == true && request.query.limit <= 5) || isProjectOwner(projectId) || isAdmin();
         
         // Owner/Admin write access
         allow write: if isProjectOwner(projectId) || isAdmin();

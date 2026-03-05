@@ -4,7 +4,7 @@
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, where, limit, addDoc, serverTimestamp } from "firebase/firestore";
 import { useParams, notFound } from "next/navigation";
-import { ArrowRight, ChevronRight, MessageSquare, ShieldCheck, Globe, Loader2, Send, CheckCircle2 } from "lucide-react";
+import { ArrowRight, MessageSquare, ShieldCheck, Globe, Loader2, Send, CheckCircle2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ export default function PublicFeedPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  // Slug resolution: must include limit(1) to satisfy public list rules
   const projectQuery = useMemoFirebase(() => query(
     collection(db, 'projects'),
     where('slug', '==', projectSlug),
@@ -34,7 +35,7 @@ export default function PublicFeedPage() {
     return query(
       collection(db, 'projects', project.id, 'pages'),
       where('slug', '==', pageSlug),
-      where('isPublic', '==', true), // Required for visitors to list under new rules
+      where('isPublic', '==', true),
       limit(1)
     );
   }, [db, project, pageSlug]);
@@ -42,7 +43,6 @@ export default function PublicFeedPage() {
   const { data: pages, isLoading: pageLoading } = useCollection(pagesQuery);
   const page = pages?.[0];
 
-  // Log feed view
   useEffect(() => {
     if (project && page) {
       logEvent('feed_page_view', { 
@@ -62,25 +62,6 @@ export default function PublicFeedPage() {
   }
 
   if (!project || !page) return notFound();
-
-  // SEO & Structured Data
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": page.faqs?.map((faq: any) => ({
-      "@type": "Question",
-      "name": faq.question,
-      "acceptedAnswer": { "@type": "Answer", "text": faq.answer }
-    }))
-  };
-
-  const orgSchema = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": project.name,
-    "url": project.website,
-    "description": project.brandMemory?.differentiators
-  };
 
   const handleLeadSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -112,9 +93,6 @@ export default function PublicFeedPage() {
 
   return (
     <div className="bg-white min-h-screen text-slate-900 font-body antialiased selection:bg-primary/10">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }} />
-      
       <nav className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="font-bold text-xl tracking-tight text-primary flex items-center gap-2">
@@ -162,22 +140,6 @@ export default function PublicFeedPage() {
           ))}
         </div>
 
-        {/* Internal Linking Engine */}
-        {page.internalLinks && page.internalLinks.length > 0 && (
-          <div className="mt-20 p-8 bg-slate-50 rounded-[2rem] border border-slate-100">
-            <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-              <ArrowRight className="h-3 w-3" /> RELATED CAPABILITIES
-            </h4>
-            <div className="flex flex-wrap gap-4">
-              {page.internalLinks.map((slug: string) => (
-                <a key={slug} href={`/feed/${projectSlug}/${slug}`} className="px-5 py-2 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:border-primary hover:text-primary transition-all">
-                  {slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
-
         {page.faqs && page.faqs.length > 0 && (
           <section className="mt-32 pt-16 border-t border-slate-100">
             <div className="flex items-center gap-4 mb-12">
@@ -198,7 +160,6 @@ export default function PublicFeedPage() {
           </section>
         )}
 
-        {/* Lead Capture Module */}
         <section className="mt-32 bg-slate-900 text-white rounded-[3rem] overflow-hidden relative shadow-2xl">
           <div className="grid md:grid-cols-2">
             <div className="p-12 md:p-16 space-y-8 bg-slate-800/50">
@@ -206,14 +167,6 @@ export default function PublicFeedPage() {
               <p className="text-slate-400 leading-relaxed font-medium">
                 {project.brandMemory?.differentiators}
               </p>
-              <div className="flex items-center gap-4 pt-4">
-                <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center">
-                  <Globe className="h-6 w-6" />
-                </div>
-                <div className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-none">
-                  Trusted Partner<br/><span className="text-white mt-1 inline-block">{project.name}</span>
-                </div>
-              </div>
             </div>
             
             <div className="p-12 md:p-16">
@@ -221,25 +174,24 @@ export default function PublicFeedPage() {
                 <div className="h-full flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in scale-in">
                   <CheckCircle2 className="h-16 w-16 text-green-500" />
                   <h3 className="text-2xl font-bold">Strategic Inquiry Logged</h3>
-                  <p className="text-slate-400 text-sm">Our {project.niche} specialists will contact you shortly.</p>
                   <Button variant="outline" className="text-white border-slate-700" onClick={() => setSubmitted(false)}>Send another message</Button>
                 </div>
               ) : (
                 <form onSubmit={handleLeadSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Your Name</label>
-                    <Input name="name" required className="bg-slate-800 border-slate-700 h-12 rounded-xl text-white focus:ring-primary" placeholder="Jane Doe" />
+                    <Input name="name" required className="bg-slate-800 border-slate-700 h-12 rounded-xl text-white" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Business Email</label>
-                    <Input name="email" type="email" required className="bg-slate-800 border-slate-700 h-12 rounded-xl text-white focus:ring-primary" placeholder="jane@company.com" />
+                    <Input name="email" type="email" required className="bg-slate-800 border-slate-700 h-12 rounded-xl text-white" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Inquiry Details</label>
-                    <Textarea name="message" required className="bg-slate-800 border-slate-700 rounded-xl text-white min-h-[100px] focus:ring-primary" placeholder="How can we help you scale?" />
+                    <Textarea name="message" required className="bg-slate-800 border-slate-700 rounded-xl text-white" />
                   </div>
-                  <Button type="submit" disabled={submitting} className="w-full h-14 rounded-xl font-bold text-lg bg-primary hover:bg-primary/90 mt-4">
-                    {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Speak with a Specialist</>}
+                  <Button type="submit" disabled={submitting} className="w-full h-14 rounded-xl font-bold bg-primary mt-4">
+                    {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Speak with a Specialist"}
                   </Button>
                 </form>
               )}
@@ -248,14 +200,10 @@ export default function PublicFeedPage() {
         </section>
       </main>
 
-      <footer className="bg-slate-900 text-white py-20 mt-32">
-        <div className="max-w-6xl mx-auto px-6 text-center space-y-10">
-          <div className="font-bold text-2xl tracking-tighter">{project.name}</div>
-          <div className="text-slate-600 text-[10px] font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-10">
-            <span>&copy; {new Date().getFullYear()} {project.name}</span>
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white transition-colors">Strategic Terms</a>
-          </div>
+      <footer className="bg-slate-900 text-white py-20 mt-32 text-center">
+        <div className="font-bold text-2xl tracking-tighter mb-4">{project.name}</div>
+        <div className="text-slate-600 text-[10px] font-bold uppercase tracking-[0.3em]">
+          &copy; {new Date().getFullYear()} {project.name}
         </div>
       </footer>
     </div>
