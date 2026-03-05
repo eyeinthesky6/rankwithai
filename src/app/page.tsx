@@ -53,7 +53,7 @@ export default function LandingPage() {
             AI-Ready Search Presence
           </div>
           <h1 className="text-5xl md:text-7xl font-black leading-[1.1] tracking-tighter max-w-4xl mx-auto">
-            Become Searchable by <span className="text-primary">AI Chatbots.</span>
+            Become searchable by <span className="text-primary">AI Chatbots.</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-medium">
             Add AI-trusted lead capturing pages to your website and be the business that AI search engines find and recommend.
@@ -116,7 +116,7 @@ export default function LandingPage() {
             </p>
             <Link href="/login">
               <Button size="lg" variant="secondary" className="h-14 px-12 text-lg font-bold rounded-2xl bg-white text-primary hover:bg-slate-100">
-                Start Free Trial
+                Start AI Journey
               </Button>
             </Link>
           </div>
