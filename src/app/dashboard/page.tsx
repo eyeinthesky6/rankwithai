@@ -30,9 +30,7 @@ export default function Dashboard() {
     router.push('/');
   };
 
-  // UseMemoFirebase ensures the query object is stable to prevent re-subscription loops
-  // We explicitly check for user.uid to ensure the query is only built when identity is certain
-  // AND we filter by ownerId to satisfy Firestore Security Rules (Rules-as-Filters)
+  // We explicitly scope the query by ownerId to satisfy Firestore's Rules-as-Filters.
   const projectsQuery = useMemoFirebase(() => {
     if (!user?.uid) return null;
     
@@ -76,7 +74,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-2 text-xs font-bold text-muted-foreground px-3 py-1 bg-muted rounded-full">
               <UserIcon className="h-3 w-3" />
-              {user.isAnonymous ? 'ANONYMOUS SESSION' : user.email || user.uid.slice(0, 8)}
+              {user.email || user.uid.slice(0, 8)}
             </div>
             <ThemeToggle />
             <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign Out">
@@ -131,32 +129,6 @@ export default function Dashboard() {
               <ProjectCard key={project.id} project={project} />
             ))
           )}
-        </div>
-
-        <div className="mt-12 bg-primary/5 rounded-[3rem] p-10 md:p-16 border border-primary/10 flex flex-col lg:flex-row items-center gap-12 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -mr-32 -mt-32" />
-          <div className="flex-1 space-y-6 relative z-10">
-            <div className="inline-flex items-center rounded-full bg-primary/10 px-4 py-1.5 text-xs font-bold text-primary uppercase tracking-widest border border-primary/20">
-              <Zap className="mr-2 h-3.5 w-3.5" />
-              AI Discovery Engine
-            </div>
-            <h3 className="text-4xl font-black tracking-tighter">Become the AI's First Choice.</h3>
-            <p className="text-muted-foreground leading-relaxed font-medium text-lg">
-              Most websites are invisible to LLMs. We fix that by building high-authority content feeds that chatbots trust and users love. 
-              <strong> Be the business that gets recommended.</strong>
-            </p>
-          </div>
-          <div className="w-full lg:w-2/5 aspect-[4/3] bg-background/50 backdrop-blur-md rounded-3xl shadow-inner border border-border flex items-center justify-center p-8 relative group">
-            <div className="text-left space-y-2 w-full font-mono text-[10px] md:text-xs">
-              <div className="text-primary/40">&lt;ai-feed status="searchable"&gt;</div>
-              <div className="pl-4 text-primary">authority: HIGH</div>
-              <div className="pl-4 text-muted-foreground/60">// AI-trusted schema injected</div>
-              <div className="pl-4 text-orange-500">leads: [ACTIVE CAPTURE ENABLED]</div>
-              <div className="pl-4 text-primary/40">discovery: [SEARCHABLE BY CHATBOTS]</div>
-              <div className="text-primary/40">&lt;/ai-feed&gt;</div>
-              <div className="absolute inset-0 bg-primary/5 rounded-3xl group-hover:bg-transparent transition-colors" />
-            </div>
-          </div>
         </div>
       </main>
     </div>

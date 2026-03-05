@@ -1,11 +1,6 @@
-
-# Settings to manage and configure a Firebase App Hosting backend.
-# https://firebase.google.com/docs/app-hosting/configure
-
 runtime: nodejs22
 
 runConfig:
-  # Cap instances to manage costs during MVP phase
   maxInstances: 2
   minInstances: 0
   cpu: 1
