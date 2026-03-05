@@ -31,9 +31,10 @@ export default function Dashboard() {
   };
 
   // UseMemoFirebase ensures the query object is stable to prevent re-subscription loops
+  // We explicitly check for user.uid to ensure the query is only built when identity is certain
   const projectsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    // Strict filtering by ownerId to satisfy Firestore 'Rules-as-Filters' security requirements
+    if (!user?.uid) return null;
+    
     return query(
       collection(db, 'projects'),
       where('ownerId', '==', user.uid),

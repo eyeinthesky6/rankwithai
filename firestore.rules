@@ -16,13 +16,6 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid));
     }
 
-    /**
-     * @description Helper to check if the authenticated user owns the document.
-     */
-    function isOwner(data) {
-      return isSignedIn() && data.ownerId == request.auth.uid;
-    }
-
     // Admin-only collections
     match /adminUsers/{uid} {
       allow read: if isSignedIn();
@@ -60,9 +53,8 @@ service cloud.firestore {
       
       /**
        * @description list rules:
-       * 1. Slug resolution (public): allowed if limit is 1.
-       * 2. Owner listing: allowed if query filter matches auth UID.
-       * 3. Admin listing: allowed.
+       * 1. Public resolution: allow listing with limit 1 (for slug lookups).
+       * 2. Owner listing: allow if the query filters by the user's UID.
        */
       allow list: if (request.query.limit <= 1)
                   || (isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin()));
@@ -73,7 +65,7 @@ service cloud.firestore {
       // Subcollections
       match /pages/{pageId} {
         allow read: if (resource.data.isPublic == true) || (isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin()));
-        allow list: if (resource.data.isPublic == true && request.query.limit <= 10) 
+        allow list: if (request.query.limit <= 10 && resource.data.isPublic == true) 
                     || (isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin()));
         allow write: if isSignedIn() && (request.resource.data.ownerId == request.auth.uid || isAdmin());
       }
