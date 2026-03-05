@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,15 +11,18 @@ import { Badge } from '@/components/ui/badge';
 
 export default function ProjectCard({ project }: { project: any }) {
   const db = useFirestore();
+  const { user } = useUser();
   const [staleCount, setStaleCount] = useState(0);
   const [issueCount, setIssueCount] = useState(0);
 
   useEffect(() => {
+    if (!user) return;
+    
     const fetchHealth = async () => {
-      // Query restricted to pages owned by the project owner
+      // Query restricted to pages owned by the project owner (current user)
       const q = query(
         collection(db, 'projects', project.id, 'pages'), 
-        where('ownerId', '==', project.ownerId),
+        where('ownerId', '==', user.uid),
         limit(50)
       );
       try {
@@ -30,11 +32,11 @@ export default function ProjectCard({ project }: { project: any }) {
         setStaleCount(stale);
         setIssueCount(issues);
       } catch (e) {
-        console.warn("Health check limited by permissions or missing data");
+        console.warn("Health check limited by permissions or missing data", e);
       }
     };
     fetchHealth();
-  }, [db, project.id, project.ownerId]);
+  }, [db, project.id, user?.uid]);
 
   return (
     <Card className="overflow-hidden transition-all hover:shadow-xl hover:-translate-y-1 group rounded-[2rem] border-border/60">

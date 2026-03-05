@@ -1,7 +1,7 @@
 'use client';
 
-import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { useCollection, useMemoFirebase, useUser } from "@/firebase";
+import { collection, query, orderBy, where } from "firebase/firestore";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,16 @@ import { useFirestore } from "@/firebase";
 export default function PageList({ project }: { project: any }) {
   const [filter, setFilter] = useState('');
   const db = useFirestore();
+  const { user } = useUser();
 
   const pagesQuery = useMemoFirebase(() => {
-    return query(collection(db, 'projects', project.id, 'pages'), orderBy('createdAt', 'desc'));
-  }, [db, project.id]);
+    if (!user) return null;
+    return query(
+      collection(db, 'projects', project.id, 'pages'), 
+      where('ownerId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
+  }, [db, project.id, user?.uid]);
 
   const { data: pages, isLoading } = useCollection(pagesQuery);
 
