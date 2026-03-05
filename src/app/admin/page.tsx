@@ -56,7 +56,7 @@ export default function AdminDashboard() {
     if (isAdmin !== true || !user?.uid) return null;
     return query(
       collection(db, 'projects'),
-      where('ownerUid', '==', user.uid),
+      where('ownerId', '==', user.uid),
       limit(100)
     );
   }, [db, isAdmin, user?.uid]);

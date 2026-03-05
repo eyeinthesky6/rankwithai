@@ -5,6 +5,7 @@ import { collection, query, orderBy, limit } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Label } from "@/components/ui/label";
 import { BarChart3, Zap, ShieldCheck, FileText, History, AlertCircle, TrendingUp, Cpu, Database, Fingerprint } from "lucide-react";
 
 export default function ProjectDashboard({ project }: { project: any }) {
