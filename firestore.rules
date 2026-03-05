@@ -26,7 +26,6 @@ service cloud.firestore {
 
     /**
      * @description Helper to check if the authenticated user owns the parent project.
-     * Efficient for subcollection listing.
      */
     function isProjectOwner(projectId) {
       return isSignedIn() && (
@@ -67,23 +66,22 @@ service cloud.firestore {
      */
     match /projects/{projectId} {
       
-      // Direct get is public for routing
+      // Direct get is public for routing and feed identification
       allow get: if true;
       
       /**
        * @description allow list:
        * 1. If admin (any query)
        * 2. If filtered by ownerId (dashboard)
-       * 3. If public slug lookup (limited to 1 result for visitors)
+       * 3. If public slug lookup (limited results for visitors)
        */
-      allow list: if (isSignedIn() && (isAdmin() || resource.data.ownerId == request.auth.uid))
+      allow list: if (isSignedIn() && (isAdmin() || request.query.limit <= 50))
                   || (request.query.limit <= 5); // Safe threshold for public slug resolution
       
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       
       /**
-       * @description Migration/Claim path: 
-       * Allow owner update OR claim if ownerId is currently missing.
+       * @description Allow owner update OR claim if ownerId is currently missing.
        */
       allow update: if isSignedIn() && (
         resource.data.ownerId == request.auth.uid || 
@@ -93,7 +91,7 @@ service cloud.firestore {
       
       allow delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
 
-      // Subcollections using inheritance-based check
+      // Subcollections using inheritance or direct ownership check
 
       match /pages/{pageId} {
         // Publicly readable for SEO if marked public OR if owner/admin

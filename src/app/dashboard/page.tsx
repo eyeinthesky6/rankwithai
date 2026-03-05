@@ -9,12 +9,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { PlusCircle, Globe, Briefcase, ChevronRight, LayoutGrid, Zap, Loader2, Sparkles, User as UserIcon, AlertTriangle, AlertCircle, CreditCard } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
 export default function Dashboard() {
   const db = useFirestore();
   const { user, isUserLoading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/');
+    }
+  }, [user, isUserLoading, router]);
 
   const projectsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -35,9 +42,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!user) {
-    redirect('/');
-  }
+  if (!user) return null;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -146,9 +151,8 @@ function ProjectCard({ project }: { project: any }) {
   const [issueCount, setIssueCount] = useState(0);
 
   useEffect(() => {
-    // We fetch a quick summary of pages to show health on dashboard
     const fetchHealth = async () => {
-      const q = query(collection(db, 'projects', project.id, 'pages'));
+      const q = query(collection(db, 'projects', project.id, 'pages'), where('ownerId', '==', project.ownerId));
       const snap = await getDocs(q);
       const stale = snap.docs.filter(d => d.data().isStale).length;
       const issues = snap.docs.filter(d => d.data().qaStatus === 'NEEDS_FIX').length;
@@ -156,7 +160,7 @@ function ProjectCard({ project }: { project: any }) {
       setIssueCount(issues);
     };
     fetchHealth();
-  }, [db, project.id]);
+  }, [db, project.id, project.ownerId]);
 
   return (
     <Card className="overflow-hidden transition-all hover:shadow-xl hover:-translate-y-1 group rounded-[2rem] border-border/60">

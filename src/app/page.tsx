@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Sparkles, ShieldCheck, Zap, Globe, ArrowRight, BarChart3, ChevronRight, LayoutGrid, CreditCard } from 'lucide-react';
+import { Sparkles, ShieldCheck, Zap, Globe, ArrowRight, BarChart3, ChevronRight, LayoutGrid, CreditCard, Loader2 } from 'lucide-react';
 import { useUser, initiateAnonymousSignIn, useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -14,7 +14,6 @@ export default function LandingPage() {
   const auth = useAuth();
   const router = useRouter();
 
-  // Redirect to dashboard if already authenticated
   useEffect(() => {
     if (user && !isUserLoading) {
       router.push('/dashboard');
@@ -51,14 +50,14 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            {user ? (
+            {isUserLoading ? (
+              <Button size="sm" variant="ghost" disabled className="rounded-xl"><Loader2 className="h-4 w-4 animate-spin" /></Button>
+            ) : user ? (
               <Link href="/dashboard">
                 <Button size="sm" className="font-bold rounded-xl">Dashboard</Button>
               </Link>
             ) : (
-              <Button onClick={() => handleStart()} size="sm" className="font-bold rounded-xl" disabled={isUserLoading}>
-                {isUserLoading ? 'Loading...' : 'Get Started'}
-              </Button>
+              <Button onClick={() => handleStart()} size="sm" className="font-bold rounded-xl">Get Started</Button>
             )}
           </div>
         </div>
@@ -84,7 +83,7 @@ export default function LandingPage() {
               className="h-14 px-10 text-lg font-bold rounded-2xl shadow-xl hover:scale-105 transition-all"
               disabled={isUserLoading}
             >
-              Launch My Engine <ArrowRight className="ml-2 h-5 w-5" />
+              {isUserLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Launch My Engine <ArrowRight className="ml-2 h-5 w-5" /></>}
             </Button>
             <Link href="/pricing">
               <Button variant="outline" size="lg" className="h-14 px-10 text-lg font-bold rounded-2xl">

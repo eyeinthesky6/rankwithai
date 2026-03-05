@@ -27,13 +27,12 @@ export default function AdminDashboard() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [savingDoc, setSavingDoc] = useState(false);
 
-  // Robust admin verification
   useEffect(() => {
     if (user) {
       const checkAdmin = async () => {
         try {
-          const adminSnap = await getDocs(query(collection(db, 'adminUsers'), where('__name__', '==', user.uid)));
-          setIsAdmin(!adminSnap.empty);
+          const adminDoc = await getDocs(query(collection(db, 'adminUsers'), where('__name__', '==', user.uid)));
+          setIsAdmin(!adminDoc.empty);
         } catch (e) {
           console.error("Admin check failed:", e);
           setIsAdmin(false);
@@ -45,7 +44,6 @@ export default function AdminDashboard() {
     }
   }, [user, isUserLoading, db]);
 
-  // Product Doc
   const docRef = useMemoFirebase(() => doc(db, 'systemConfig', 'product'), [db]);
   const { data: config } = useDoc(docRef);
   const [docContent, setDocContent] = useState('');
@@ -54,7 +52,6 @@ export default function AdminDashboard() {
     if (config?.productDoc) setDocContent(config.productDoc);
   }, [config]);
 
-  // Metrics (Only fetch if confirmed admin to prevent permission errors)
   const eventsQuery = useMemoFirebase(() => {
     if (isAdmin !== true) return null;
     return query(collection(db, 'eventLogs'), orderBy('createdAt', 'desc'), limit(50));
@@ -188,7 +185,7 @@ export default function AdminDashboard() {
                       <CardTitle className="text-sm font-black uppercase tracking-widest opacity-60">Error Monitoring</CardTitle>
                    </CardHeader>
                    <CardContent>
-                      <div className="py-12 text-center text-muted-foreground italic text-xs">
+                      <div className="py-12 text-center text-muted-foreground italic text-sm">
                          <AlertCircle className="h-8 w-8 mx-auto mb-4 opacity-20" />
                          No critical execution errors detected.
                       </div>
