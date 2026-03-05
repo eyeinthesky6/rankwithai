@@ -2,49 +2,16 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Helper to check if the request is from an authenticated user.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * @description Admin check via allowlist collection.
-     */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid));
     }
 
-    // Admin-only collections
-    match /adminUsers/{uid} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-    
-    match /eventLogs/{eventId} {
-      allow create: if true;
-      allow read: if isAdmin();
-    }
-    
-    match /userProfiles/{uid} {
-      allow read, write: if isSignedIn() && (request.auth.uid == uid || isAdmin());
-    }
-    
-    match /systemConfig/product {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /visitorChatSessions/{sessionId} {
-      allow read, write: if true;
-      match /messages/{messageId} {
-        allow read, write: if true;
-      }
-    }
-
     /**
-     * @description Rules for the Project entity.
+     * @description Rules for the Project entity and its subcollections.
      */
     match /projects/{projectId} {
       
@@ -63,44 +30,45 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
 
-      // Subcollections
-      match /pages/{pageId} {
-        // Publicly readable if marked as public
-        allow read: if (resource.data.isPublic == true);
-        // Owner/Admin access
-        allow read, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-        // Writing
-        allow write: if isSignedIn() && (request.resource.data.ownerId == request.auth.uid || isAdmin());
+      // Subcollections inherit ownership check from parent
+      match /{allSubcollections=**} {
+        allow read, write: if isSignedIn() && (get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid || isAdmin());
       }
 
-      match /generationRuns/{runId} {
-        allow read, list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-        allow write: if isSignedIn() && (request.resource.data.ownerId == request.auth.uid || isAdmin());
+      // Specific overrides for subcollections that need public access
+      match /pages/{pageId} {
+        allow read: if resource.data.isPublic == true;
       }
 
       match /leads/{leadId} {
         allow create: if true;
-        allow read, list, update, delete: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
       }
+    }
 
-      match /customDomains/{domainId} {
-        allow read, list, write: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-      }
+    // Global collections
+    match /adminUsers/{uid} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    
+    match /userProfiles/{uid} {
+      allow read, write: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+    }
+    
+    match /systemConfig/product {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
 
-      match /aiUsageLogs/{logId} {
-        allow read, list, write: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-      }
+    match /eventLogs/{eventId} {
+      allow create: if true;
+      allow read: if isAdmin();
+    }
 
-      match /copilotSessions/{sessionId} {
-        allow read, list, write: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-        
-        match /messages/{messageId} {
-          allow read, list, write: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-        }
-        
-        match /drafts/{draftId} {
-          allow read, list, write: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
-        }
+    match /visitorChatSessions/{sessionId} {
+      allow read, write: if true;
+      match /messages/{messageId} {
+        allow read, write: if true;
       }
     }
   }

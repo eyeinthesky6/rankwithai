@@ -6,12 +6,13 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Sparkles, ShieldCheck, Zap, Globe, ArrowRight, LayoutGrid, Loader2, MessageSquare } from 'lucide-react';
 import { useUser, initiateGoogleSignIn, useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function LandingPage() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
     if (user && !isUserLoading) {
@@ -19,8 +20,16 @@ export default function LandingPage() {
     }
   }, [user, isUserLoading, router]);
 
-  const handleStart = () => {
-    initiateGoogleSignIn(auth);
+  const handleStart = async () => {
+    if (isLoggingIn) return;
+    setIsLoggingIn(true);
+    try {
+      await initiateGoogleSignIn(auth);
+    } catch (error) {
+      console.error("Auth failed:", error);
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
   return (
@@ -65,9 +74,9 @@ export default function LandingPage() {
               onClick={handleStart} 
               size="lg" 
               className="h-14 px-10 text-lg font-bold rounded-2xl shadow-xl hover:scale-105 transition-all w-full sm:w-auto"
-              disabled={isUserLoading}
+              disabled={isUserLoading || isLoggingIn}
             >
-              {isUserLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Get AI-Ready <ArrowRight className="ml-2 h-5 w-5" /></>}
+              {isUserLoading || isLoggingIn ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Get AI-Ready <ArrowRight className="ml-2 h-5 w-5" /></>}
             </Button>
             <Link href="/pricing" className="w-full sm:w-auto">
               <Button variant="outline" size="lg" className="h-14 px-10 text-lg font-bold rounded-2xl w-full">
@@ -115,7 +124,7 @@ export default function LandingPage() {
             <p className="text-primary-foreground/80 text-lg font-medium">
               Join businesses using rankwithai to build a search presence that actually works in the age of AI.
             </p>
-            <Button onClick={handleStart} size="lg" variant="secondary" className="h-14 px-12 text-lg font-bold rounded-2xl bg-white text-primary hover:bg-slate-100">
+            <Button onClick={handleStart} size="lg" variant="secondary" className="h-14 px-12 text-lg font-bold rounded-2xl bg-white text-primary hover:bg-slate-100" disabled={isUserLoading || isLoggingIn}>
               Start Free Trial
             </Button>
           </div>
