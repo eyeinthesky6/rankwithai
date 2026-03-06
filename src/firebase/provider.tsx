@@ -74,29 +74,70 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       return;
     }
 
-    setUserAuthState({ user: null, isUserLoading: true, userError: null }); // Reset on auth instance change
+    // Keep loading true while we process any pending OAuth redirect result
+    // and wait for initial auth state check
+    let isMounted = true;
 
     // Handle any pending OAuth redirect result
     const handleRedirect = async () => {
       try {
-        await getRedirectResult(auth);
-      } catch (error) {
-        console.error('Error handling redirect result:', error);
+        // Wait for the redirect result to be processed
+        // This ensures OAuth credentials are exchanged before we check auth state
+        const result = await getRedirectResult(auth);
+        if (result && isMounted) {
+          console.log('OAuth redirect result processed:', result.user?.email);
+          // Force update the auth state after redirect result is processed
+          // The onAuthStateChanged should handle this, but we ensure it's synced
+        }
+      } catch (error: any) {
+        // Handle specific error codes that are expected during normal auth flow
+        if (error?.code !== 'auth/no-auth-event' && error?.code !== 'auth/cancelled-popup-request') {
+          console.error('Error handling redirect result:', error);
+        }
       }
     };
-    handleRedirect();
 
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (firebaseUser) => { // Auth state determined
-        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
-      },
-      (error) => { // Auth listener error
-        console.error("FirebaseProvider: onAuthStateChanged error:", error);
-        setUserAuthState({ user: null, isUserLoading: false, userError: error });
+    // Process redirect result and set up auth listener
+    const initializeAuth = async () => {
+      // First, wait for any pending redirect result
+      await handleRedirect();
+      
+      // Get initial auth state BEFORE setting up the listener
+      // This ensures we capture any existing session
+      const initialUser = auth.currentUser;
+      
+      // Set up the auth state listener - this will fire whenever auth state changes
+      const unsubscribe = onAuthStateChanged(
+        auth,
+        (firebaseUser) => { // Auth state determined
+          if (isMounted) {
+            // Always update state when auth changes
+            setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+          }
+        },
+        (error) => { // Auth listener error
+          console.error("FirebaseProvider: onAuthStateChanged error:", error);
+          if (isMounted) {
+            setUserAuthState({ user: null, isUserLoading: false, userError: error });
+          }
+        }
+      );
+      
+      // If there's already a current user (from a previous session), update state
+      if (initialUser && isMounted) {
+        setUserAuthState({ user: initialUser, isUserLoading: false, userError: null });
       }
-    );
-    return () => unsubscribe(); // Cleanup
+      
+      return unsubscribe;
+    };
+
+    // Initialize auth and set up listener
+    const unsubscribePromise = initializeAuth();
+
+    return () => {
+      isMounted = false;
+      unsubscribePromise.then(unsubscribe => unsubscribe?.());
+    };
   }, [auth]); // Depends on the auth instance
 
   // Memoize the context value

@@ -58,7 +58,7 @@ interface State {
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
-const addToRemoveQueue = (toastId: string) => {
+const addToRemoveQueue = (toastId: string, dispatch: (action: Action) => void) => {
   if (toastTimeouts.has(toastId)) {
     return
   }
@@ -92,17 +92,6 @@ export const reducer = (state: State, action: Action): State => {
 
     case "DISMISS_TOAST": {
       const { toastId } = action
-
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
-      if (toastId) {
-        addToRemoveQueue(toastId)
-      } else {
-        state.toasts.forEach((toast) => {
-          addToRemoveQueue(toast.id)
-        })
-      }
-
       return {
         ...state,
         toasts: state.toasts.map((t) =>
@@ -129,16 +118,8 @@ export const reducer = (state: State, action: Action): State => {
   }
 }
 
-const listeners: Array<(state: State) => void> = []
-
-let memoryState: State = { toasts: [] }
-
-function dispatch(action: Action) {
-  memoryState = reducer(memoryState, action)
-  listeners.forEach((listener) => {
-    listener(memoryState)
-  })
-}
+// Use a ref to hold the dispatch function for timeout callbacks - fixes race condition
+const dispatchRef = React.createRef<(action: Action) => void>()
 
 type Toast = Omit<ToasterToast, "id">
 
@@ -146,23 +127,29 @@ function toast({ ...props }: Toast) {
   const id = genId()
 
   const update = (props: ToasterToast) =>
-    dispatch({
+    dispatchRef.current?.({
       type: "UPDATE_TOAST",
       toast: { ...props, id },
     })
-  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
+  const dismiss = () => dispatchRef.current?.({ type: "DISMISS_TOAST", toastId: id })
 
-  dispatch({
+  dispatchRef.current?.({
     type: "ADD_TOAST",
     toast: {
       ...props,
       id,
       open: true,
-      onOpenChange: (open) => {
+      onOpenChange: (open: boolean) => {
         if (!open) dismiss()
       },
     },
   })
+
+  // Schedule removal using current dispatch
+  const dispatch = dispatchRef.current
+  if (dispatch) {
+    addToRemoveQueue(id, dispatch)
+  }
 
   return {
     id: id,
@@ -172,22 +159,42 @@ function toast({ ...props }: Toast) {
 }
 
 function useToast() {
-  const [state, setState] = React.useState<State>(memoryState)
+  const [state, setState] = React.useState<State>({ toasts: [] })
 
-  React.useEffect(() => {
-    listeners.push(setState)
-    return () => {
-      const index = listeners.indexOf(setState)
-      if (index > -1) {
-        listeners.splice(index, 1)
-      }
+  // Set the dispatch ref on mount - ensures proper dispatch is available
+  React.useLayoutEffect(() => {
+    dispatchRef.current = setState as unknown as (action: Action) => void
+  }, [])
+
+  // Handle dismiss with proper queue management
+  const dismiss = React.useCallback((toastId?: string) => {
+    const dispatch = dispatchRef.current
+    if (!dispatch) return
+    
+    if (toastId) {
+      addToRemoveQueue(toastId, dispatch)
+    } else {
+      // Get current toasts and schedule removal for each
+      setState((prev) => {
+        prev.toasts.forEach((t) => {
+          addToRemoveQueue(t.id, dispatch)
+        })
+        return {
+          ...prev,
+          toasts: prev.toasts.map((t) =>
+            t.id === toastId || toastId === undefined
+              ? { ...t, open: false }
+              : t
+          ),
+        }
+      })
     }
-  }, [state])
+  }, [])
 
   return {
     ...state,
     toast,
-    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
+    dismiss,
   }
 }
 

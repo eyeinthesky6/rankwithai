@@ -22,24 +22,32 @@ export function CopilotPanel({ project, onApplyDraft }: { project?: any, onApply
   const [draft, setDraft] = useState<any>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(false);
 
-  // Load existing session or create new one
+  // Load existing session or create new one - with deduplication
   useEffect(() => {
-    if (!user || !project?.id || sessionId) return;
+    if (!user || !project?.id || sessionId || isInitializing) return;
 
     const initializeSession = async () => {
-      const sessionRef = await addDoc(collection(db, 'projects', project.id, 'copilotSessions'), {
-        ownerUid: user.uid,
-        projectId: project.id,
-        status: 'active',
-        createdAt: serverTimestamp()
-      });
-      setSessionId(sessionRef.id);
-      setMessages([{ role: 'assistant', content: "Hi! I'm your AI Setup Copilot. Tell me about your business name, niche, and the core services you want to rank for." }]);
+      setIsInitializing(true);
+      try {
+        const sessionRef = await addDoc(collection(db, 'projects', project.id, 'copilotSessions'), {
+          ownerUid: user.uid,
+          projectId: project.id,
+          status: 'active',
+          createdAt: serverTimestamp()
+        });
+        setSessionId(sessionRef.id);
+        setMessages([{ role: 'assistant', content: "Hi! I'm your AI Setup Copilot. Tell me about your business name, niche, and the core services you want to rank for." }]);
+      } catch (error) {
+        console.error('Failed to initialize copilot session:', error);
+      } finally {
+        setIsInitializing(false);
+      }
     };
 
     initializeSession();
-  }, [user, project?.id]);
+  }, [user, project?.id, sessionId, isInitializing]);
 
   const handleSend = async () => {
     if (!input.trim() || loading || !sessionId || !user) return;

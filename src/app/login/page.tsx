@@ -6,21 +6,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles, Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function LoginPage() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
-  const router = useRouter();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
     // Redirect once user is detected
     if (user && !isUserLoading) {
-      router.push('/dashboard');
+      // Use replace with reload to ensure clean auth state after OAuth redirect
+      window.location.href = '/dashboard';
     }
-  }, [user, isUserLoading, router, auth]);
+  }, [user, isUserLoading]);
 
   const handleGoogleLogin = async () => {
     setIsLoggingIn(true);

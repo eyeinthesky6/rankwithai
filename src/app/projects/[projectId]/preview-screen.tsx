@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useCollection, useMemoFirebase, useFirestore } from "@/firebase";
-import { collection, query, orderBy, doc, arrayUnion } from "firebase/firestore";
+import { collection, query, orderBy, doc } from "firebase/firestore";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,8 +26,7 @@ import { autoFixPage } from "@/app/lib/auto-fixer";
 import { refreshContent } from "@/ai/flows/refresh-content-flow";
 import { checkAndLogRepairBudget } from "@/app/lib/generation-service";
 import { useToast } from "@/hooks/use-toast";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { v4 as uuidv4 } from 'uuid';
+import { applyPageUpdateWithLog } from "@/app/lib/page-update-service";
 
 export default function PreviewScreen({ project }: { project: any }) {
   const [filter, setFilter] = useState('');
@@ -68,8 +67,6 @@ export default function PreviewScreen({ project }: { project: any }) {
     setFixing(page.id);
     try {
       const { fixedPage, summary } = autoFixPage(page, project.brandMemory);
-      const pageRef = doc(db, 'projects', project.id, 'pages', page.id);
-      const projectRef = doc(db, 'projects', project.id);
       
       const finalQuality = validatePageContent(fixedPage);
       
@@ -82,19 +79,21 @@ export default function PreviewScreen({ project }: { project: any }) {
         updatedAt: new Date().toISOString()
       };
 
-      updateDocumentNonBlocking(pageRef, finalPage);
-      
-      // Log deterministic fix activity
-      updateDocumentNonBlocking(projectRef, {
-        refreshLogs: arrayUnion({
-          id: uuidv4(),
-          timestamp: new Date().toISOString(),
-          pageSlug: page.slug,
+      // Use shared service for atomic update with logging
+      applyPageUpdateWithLog({
+        db,
+        projectId: project.id,
+        pageId: page.id,
+        pageData: finalPage,
+        logEntry: {
           ruleTriggered: 'Structural Audit',
           actionTaken: 'AUTO_FIX'
-        })
+        },
+        pageSlug: page.slug
+      }).catch((e) => {
+        console.error('Failed to apply auto-fix:', e);
       });
-
+      
       toast({ title: "Deterministic Fix Applied", description: `Applied fix: ${summary}` });
       if (activePage?.id === page.id) setActivePage(finalPage);
     } catch (e) {
@@ -108,27 +107,29 @@ export default function PreviewScreen({ project }: { project: any }) {
     setFixing(page.id);
     try {
       const { fixedPage, summary } = autoFixPage(page, project.brandMemory);
-      const pageRef = doc(db, 'projects', project.id, 'pages', page.id);
-      const projectRef = doc(db, 'projects', project.id);
       const newHash = JSON.stringify(project.brandMemory).split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0).toString();
 
-      updateDocumentNonBlocking(pageRef, {
+      const finalPageData = {
         ...fixedPage,
         brandMemoryHash: newHash,
         isStale: false,
         lastFixSummary: `Strategic Sync: ${summary}`,
         updatedAt: new Date().toISOString()
-      });
+      };
 
-      // Log sync activity
-      updateDocumentNonBlocking(projectRef, {
-        refreshLogs: arrayUnion({
-          id: uuidv4(),
-          timestamp: new Date().toISOString(),
-          pageSlug: page.slug,
+      // Use shared service for atomic update with logging
+      applyPageUpdateWithLog({
+        db,
+        projectId: project.id,
+        pageId: page.id,
+        pageData: finalPageData,
+        logEntry: {
           ruleTriggered: 'Identity Hash Mismatch',
           actionTaken: 'STRATEGIC_SYNC'
-        })
+        },
+        pageSlug: page.slug
+      }).catch((e) => {
+        console.error('Failed to apply brand sync:', e);
       });
 
       toast({ title: "Strategy Synchronized", description: "The page has been updated with the latest brand memory." });
@@ -185,17 +186,20 @@ export default function PreviewScreen({ project }: { project: any }) {
         updates.sections = newSections;
       }
 
-      updateDocumentNonBlocking(pageRef, updates);
-
-      // Log AI repair activity
-      updateDocumentNonBlocking(projectRef, {
-        refreshLogs: arrayUnion({
+      // Use transaction to atomically update both page and project log
+      await runTransaction(db, async (transaction) => {
+        const logEntry = {
           id: uuidv4(),
           timestamp: new Date().toISOString(),
           pageSlug: activePage.slug,
           ruleTriggered: 'Manual Optimization',
           actionTaken: `AI_REPAIR_${repairAction.type}`
-        })
+        };
+        
+        transaction.update(pageRef, updates);
+        transaction.update(projectRef, {
+          refreshLogs: arrayUnion(logEntry)
+        });
       });
 
       toast({ title: "AI Repair Applied", description: `Successfully applied AI repair: ${repairAction.type}` });

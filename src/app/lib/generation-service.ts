@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Firestore, collection, doc, setDoc, addDoc, serverTimestamp, getDocs, query, where, writeBatch, updateDoc, increment } from 'firebase/firestore';
+import { Firestore, collection, doc, setDoc, addDoc, serverTimestamp, getDocs, query, where, writeBatch, updateDoc, increment, runTransaction } from 'firebase/firestore';
 import { generateSkeletons, PageSkeleton } from './templates';
 import { generateBatchContent } from '@/ai/flows/generate-feed-pages';
 import { validatePageContent } from './quality-validator';
@@ -135,35 +135,55 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
 }
 
 /**
- * Checks budget and logs individual AI usage for repairs.
+ * Checks budget and logs individual AI usage for repairs using atomic transaction.
  */
 export async function checkAndLogRepairBudget(db: Firestore, project: any, actionType: string, pageSlug: string) {
-  const projectId = project.id;
+  const projectRef = doc(db, 'projects', project.id);
   const ownerUid = project.ownerUid;
   const today = new Date().toISOString().split('T')[0];
-  const usage = project.aiUsage || {};
 
-  // Check budget
-  if (usage.lastRepairDate === today && (usage.dailyRepairCount || 0) >= REPAIR_DAILY_CAP) {
-    throw new Error(`Daily AI repair limit (${REPAIR_DAILY_CAP}) reached for this project.`);
-  }
+  // Use transaction to atomically check and update budget
+  await runTransaction(db, async (transaction) => {
+    const projectSnap = await transaction.get(projectRef);
+    
+    if (!projectSnap.exists()) {
+      throw new Error("Project not found");
+    }
+    
+    const projectData = projectSnap.data();
+    const usage = projectData.aiUsage || {};
+    const lastRepairDate = usage.lastRepairDate;
+    const dailyRepairCount = usage.dailyRepairCount || 0;
 
-  // Log usage
-  await addDoc(collection(db, 'projects', projectId, 'aiUsageLogs'), {
-    projectId,
-    ownerUid,
-    actionType,
-    pageSlug,
-    tokensEstimated: 500, // Static estimate for UX
-    createdAt: serverTimestamp()
+    // Check budget atomically within transaction
+    if (lastRepairDate === today && dailyRepairCount >= REPAIR_DAILY_CAP) {
+      throw new Error(`Daily AI repair limit (${REPAIR_DAILY_CAP}) reached for this project.`);
+    }
+
+    // Log usage
+    const usageLogRef = addDoc(collection(db, 'projects', project.id, 'aiUsageLogs'), {
+      projectId: project.id,
+      ownerUid,
+      actionType,
+      pageSlug,
+      tokensEstimated: 500, // Static estimate for UX
+      createdAt: serverTimestamp()
+    });
+
+    // Update project counters atomically
+    const updates: any = {
+      "aiUsage.totalCalls": increment(1),
+      "aiUsage.lastRepairDate": today
+    };
+    
+    // Only increment dailyRepairCount if it's today
+    if (lastRepairDate === today) {
+      updates["aiUsage.dailyRepairCount"] = increment(1);
+    } else {
+      // First repair of the day - reset counter to 1
+      updates["aiUsage.dailyRepairCount"] = 1;
+    }
+    
+    transaction.update(projectRef, updates);
   });
-
-  // Update project counters
-  const projectRef = doc(db, 'projects', projectId);
-  const updates: any = {
-    "aiUsage.totalCalls": increment(1),
-    "aiUsage.dailyRepairCount": usage.lastRepairDate === today ? increment(1) : 1,
-    "aiUsage.lastRepairDate": today
-  };
-  await updateDoc(projectRef, updates);
 }
