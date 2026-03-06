@@ -88,6 +88,10 @@ export async function runGeneration(db: Firestore, project: any, requestedCount:
         seoTitle: skeleton.seoTitle,
         metaDescription: skeleton.metaDescription,
         h1: skeleton.h1,
+        // AI-optimized fields
+        summary: res.summary || '',
+        quickAnswer: res.quickAnswer || '',
+        keyQuestions: res.keyQuestions || [],
         sections: res.sections,
         faqs: res.faqs,
         internalLinks: skeleton.internalLinks || [],

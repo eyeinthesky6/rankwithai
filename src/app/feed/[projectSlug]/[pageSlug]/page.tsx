@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { logEvent } from "@/lib/telemetry";
+import { generatePageSchema } from "@/app/lib/schema-generator";
 
 export default function PublicFeedPage() {
   const { projectSlug, pageSlug } = useParams() as { projectSlug: string, pageSlug: string };
@@ -62,6 +63,20 @@ export default function PublicFeedPage() {
 
   if (!project || !page) return notFound();
 
+  // Generate JSON-LD schema
+  const pageUrl = typeof window !== 'undefined' ? window.location.href : `${project.website}/${page.slug}`;
+  const schemas = generatePageSchema({
+    pageUrl,
+    title: page.seoTitle || page.h1,
+    description: page.metaDescription || page.summary || '',
+    publishedAt: page.createdAt?.toDate?.()?.toISOString(),
+    modifiedAt: page.updatedAt?.toDate?.()?.toISOString(),
+    publisherName: project.name,
+    organizationName: project.name,
+    organizationUrl: project.website,
+    faqs: page.faqs || []
+  });
+
   const handleLeadSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSubmitting(true);
@@ -91,120 +106,182 @@ export default function PublicFeedPage() {
   };
 
   return (
-    <div className="bg-white min-h-screen text-slate-900 font-body antialiased selection:bg-primary/10">
-      <nav className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="font-bold text-xl tracking-tight text-primary flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white text-xs">RW</div>
-            {project.name}
-          </div>
-          <a href={project.website} target="_blank" className="hidden md:flex bg-primary text-white px-5 py-2 rounded-full hover:shadow-lg transition-all text-xs font-bold uppercase tracking-wider">
-            Visit Official Website
-          </a>
-        </div>
-      </nav>
+    <>
+      {/* Structured Data for AI Crawlers */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schemas) }}
+      />
 
-      <main className="max-w-4xl mx-auto px-6 py-16">
-        <div className="flex items-center gap-3 mb-10">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full">
-            {page.type}
-          </span>
-          <span className="text-slate-200">|</span>
-          <div className="flex items-center gap-1.5 text-slate-400 text-xs font-semibold">
-            <ShieldCheck className="h-3 w-3" />
-            Strategic B2B Content Feed
-          </div>
-        </div>
-
-        <header className="mb-20 space-y-6">
-          <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-[1.15]">
-            {page.h1}
-          </h1>
-          <p className="text-lg md:text-xl text-slate-500 leading-relaxed font-normal max-w-3xl border-l-4 border-primary/20 pl-6">
-            {page.metaDescription}
-          </p>
-        </header>
-
-        <div className="space-y-20">
-          {page.sections.map((section: any, i: number) => (
-            <section key={i} className="group">
-              <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-6 group-hover:text-primary transition-colors">
-                {section.h2}
-              </h2>
-              <div 
-                className="text-slate-700 leading-relaxed text-lg prose prose-slate max-w-none" 
-                dangerouslySetInnerHTML={{ __html: section.content }} 
-              />
-            </section>
-          ))}
-        </div>
-
-        {page.faqs && page.faqs.length > 0 && (
-          <section className="mt-32 pt-16 border-t border-slate-100">
-            <div className="flex items-center gap-4 mb-12">
-              <div className="p-3 bg-primary/5 rounded-2xl">
-                <MessageSquare className="h-6 w-6 text-primary" />
-              </div>
-              <h2 className="text-3xl font-bold text-slate-900">Expert Q&A</h2>
+      <div className="bg-white min-h-screen text-slate-900 font-body antialiased selection:bg-primary/10">
+        <nav className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50">
+          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div className="font-bold text-xl tracking-tight text-primary flex items-center gap-2">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white text-xs">RW</div>
+              {project.name}
             </div>
-            
-            <div className="grid gap-6">
-              {page.faqs.map((faq: any, i: number) => (
-                <div key={i} className="bg-white p-8 rounded-3xl border border-slate-200 hover:shadow-xl transition-all">
-                  <h3 className="text-xl font-bold text-slate-900 mb-4">{faq.question}</h3>
-                  <p className="text-slate-600 leading-relaxed">{faq.answer}</p>
+            <a href={project.website} target="_blank" className="hidden md:flex bg-primary text-white px-5 py-2 rounded-full hover:shadow-lg transition-all text-xs font-bold uppercase tracking-wider">
+              Visit Official Website
+            </a>
+          </div>
+        </nav>
+
+        <main className="max-w-4xl mx-auto px-6 py-16">
+          <article>
+            <header className="mb-16">
+              <div className="flex items-center gap-3 mb-8">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full">
+                  {page.type}
+                </span>
+                <span className="text-slate-200">|</span>
+                <div className="flex items-center gap-1.5 text-slate-400 text-xs font-semibold">
+                  <ShieldCheck className="h-3 w-3" />
+                  Strategic B2B Content Feed
                 </div>
+              </div>
+
+              <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-[1.15] mb-6">
+                {page.h1}
+              </h1>
+
+              {/* AI Summary Block - for LLM citation */}
+              {page.summary && (
+                <p className="ai-summary text-lg md:text-xl text-slate-600 leading-relaxed font-normal max-w-3xl border-l-4 border-primary/20 pl-6 mb-8">
+                  {page.summary}
+                </p>
+              )}
+
+              <p className="text-lg md:text-xl text-slate-500 leading-relaxed font-normal max-w-3xl border-l-4 border-primary/20 pl-6">
+                {page.metaDescription}
+              </p>
+            </header>
+
+            {/* Quick Answer Block - Direct answer for AI extraction */}
+            {page.quickAnswer && (
+              <section className="ai-answer mb-16 p-8 bg-gradient-to-r from-primary/5 to-primary/10 rounded-2xl border border-primary/20">
+                <h2 className="text-2xl font-bold text-slate-900 mb-4">Quick Answer</h2>
+                <p className="text-lg text-slate-700 leading-relaxed">
+                  {page.quickAnswer}
+                </p>
+              </section>
+            )}
+
+            {/* Key Questions Section */}
+            {page.keyQuestions && page.keyQuestions.length > 0 && (
+              <section className="ai-questions mb-16">
+                <h2 className="text-3xl font-bold text-slate-900 mb-8">Key Questions</h2>
+                <div className="space-y-8">
+                  {page.keyQuestions.map((kq: any, idx: number) => (
+                    <article key={idx} className="ai-question">
+                      <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">
+                        {kq.question}
+                      </h3>
+                      <p className="text-lg text-slate-700 leading-relaxed">
+                        {kq.answer}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Main Content Sections */}
+            <div className="space-y-20">
+              {page.sections.map((section: any, i: number) => (
+                <section key={i} className="group">
+                  <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-6 group-hover:text-primary transition-colors">
+                    {section.h2}
+                  </h2>
+                  <div 
+                    className="text-slate-700 leading-relaxed text-lg prose prose-slate max-w-none" 
+                    dangerouslySetInnerHTML={{ __html: section.content }} 
+                  />
+                </section>
               ))}
             </div>
-          </section>
-        )}
 
-        <section className="mt-32 bg-slate-900 text-white rounded-[3rem] overflow-hidden relative shadow-2xl">
-          <div className="grid md:grid-cols-2">
-            <div className="p-12 md:p-16 space-y-8 bg-slate-800/50">
-              <h2 className="text-4xl font-black tracking-tight">Scale Your {project.niche} Presence.</h2>
-              <p className="text-slate-400 leading-relaxed font-medium">
-                {project.brandMemory?.differentiators}
-              </p>
-            </div>
-            
-            <div className="p-12 md:p-16">
-              {submitted ? (
-                <div className="h-full flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in scale-in">
-                  <CheckCircle2 className="h-16 w-16 text-green-500" />
-                  <h3 className="text-2xl font-bold">Strategic Inquiry Logged</h3>
-                  <Button variant="outline" className="text-white border-slate-700" onClick={() => setSubmitted(false)}>Send another message</Button>
+            {/* Detailed Explanation Section */}
+            <section className="mt-20">
+              <h2 className="text-3xl font-bold text-slate-900 mb-8">Detailed Explanation</h2>
+              <div className="prose prose-slate max-w-none text-slate-700 leading-relaxed text-lg">
+                {page.sections.map((section: any, i: number) => (
+                  <div key={i}>
+                    <h3 className="text-xl font-bold text-slate-900 mt-8 mb-4">{section.h2}</h3>
+                    <div dangerouslySetInnerHTML={{ __html: section.content }} />
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* FAQ Section */}
+            {page.faqs && page.faqs.length > 0 && (
+              <section className="ai-faq mt-32 pt-16 border-t border-slate-100">
+                <div className="flex items-center gap-4 mb-12">
+                  <div className="p-3 bg-primary/5 rounded-2xl">
+                    <MessageSquare className="h-6 w-6 text-primary" />
+                  </div>
+                  <h2 className="text-3xl font-bold text-slate-900">Frequently Asked Questions</h2>
                 </div>
-              ) : (
-                <form onSubmit={handleLeadSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Your Name</label>
-                    <Input name="name" required className="bg-slate-800 border-slate-700 h-12 rounded-xl text-white" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Business Email</label>
-                    <Input name="email" type="email" required className="bg-slate-800 border-slate-700 h-12 rounded-xl text-white" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Inquiry Details</label>
-                    <Textarea name="message" required className="bg-slate-800 border-slate-700 rounded-xl text-white" />
-                  </div>
-                  <Button type="submit" disabled={submitting} className="w-full h-14 rounded-xl font-bold bg-primary mt-4">
-                    {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Speak with a Specialist"}
-                  </Button>
-                </form>
-              )}
-            </div>
-          </div>
-        </section>
-      </main>
+                
+                <div className="grid gap-6">
+                  {page.faqs.map((faq: any, i: number) => (
+                    <article key={i} className="bg-white p-8 rounded-3xl border border-slate-200 hover:shadow-xl transition-all">
+                      <h3 className="text-xl font-bold text-slate-900 mb-4">{faq.question}</h3>
+                      <p className="text-slate-600 leading-relaxed">{faq.answer}</p>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+          </article>
 
-      <footer className="bg-slate-900 text-white py-20 mt-32 text-center">
-        <div className="font-bold text-2xl tracking-tighter mb-4">{project.name}</div>
-        <div className="text-slate-600 text-[10px] font-bold uppercase tracking-[0.3em]">
-          &copy; {new Date().getFullYear()} {project.name}
-        </div>
-      </footer>
-    </div>
+          <section className="mt-32 bg-slate-900 text-white rounded-[3rem] overflow-hidden relative shadow-2xl">
+            <div className="grid md:grid-cols-2">
+              <div className="p-12 md:p-16 space-y-8 bg-slate-800/50">
+                <h2 className="text-4xl font-black tracking-tight">Scale Your {project.niche} Presence.</h2>
+                <p className="text-slate-400 leading-relaxed font-medium">
+                  {project.brandMemory?.differentiators}
+                </p>
+              </div>
+              
+              <div className="p-12 md:p-16">
+                {submitted ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in scale-in">
+                    <CheckCircle2 className="h-16 w-16 text-green-500" />
+                    <h3 className="text-2xl font-bold">Strategic Inquiry Logged</h3>
+                    <Button variant="outline" className="text-white border-slate-700" onClick={() => setSubmitted(false)}>Send another message</Button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleLeadSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Your Name</label>
+                      <Input name="name" required className="bg-slate-800 border-slate-700 h-12 rounded-xl text-white" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Business Email</label>
+                      <Input name="email" type="email" required className="bg-slate-800 border-slate-700 h-12 rounded-xl text-white" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Inquiry Details</label>
+                      <Textarea name="message" required className="bg-slate-800 border-slate-700 rounded-xl text-white" />
+                    </div>
+                    <Button type="submit" disabled={submitting} className="w-full h-14 rounded-xl font-bold bg-primary mt-4">
+                      {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Speak with a Specialist"}
+                    </Button>
+                  </form>
+                )}
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <footer className="bg-slate-900 text-white py-20 mt-32 text-center">
+          <div className="font-bold text-2xl tracking-tighter mb-4">{project.name}</div>
+          <div className="text-slate-600 text-[10px] font-bold uppercase tracking-[0.3em]">
+            &copy; {new Date().getFullYear()} {project.name}
+          </div>
+        </footer>
+      </div>
+    </>
   );
 }

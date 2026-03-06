@@ -65,7 +65,30 @@ export function validatePageContent(page: any): ValidationResult {
     });
   }
 
-  // 5. Hallucination Safeguard (Pattern checks)
+  // 5. AI Optimization Checks (new fields for LLM citation)
+  if (!page.summary || page.summary.trim().length < 30) {
+    issues.push({ code: 'MISSING_SUMMARY', message: 'AI summary is missing or too short for optimal LLM citation.', severity: 'medium' });
+    score -= 10;
+  }
+  
+  if (!page.quickAnswer || page.quickAnswer.trim().length < 30) {
+    issues.push({ code: 'MISSING_QUICK_ANSWER', message: 'Quick answer block is missing or too short for AI extraction.', severity: 'medium' });
+    score -= 10;
+  }
+  
+  if (!page.keyQuestions || page.keyQuestions.length < 3) {
+    issues.push({ code: 'MISSING_KEY_QUESTIONS', message: 'Key questions section should have at least 3 questions for AI optimization.', severity: 'low' });
+    score -= 5;
+  } else {
+    page.keyQuestions.forEach((kq: any, idx: number) => {
+      if (!kq.question || !kq.answer || kq.question.length < 5 || kq.answer.length < 20) {
+        issues.push({ code: 'INVALID_KEY_QUESTION', message: `Key question ${idx + 1} has incomplete content.`, severity: 'low' });
+        score -= 3;
+      }
+    });
+  }
+
+  // 6. Hallucination Safeguard (Pattern checks)
   const fakePatterns = [
     /\d{1,3}\.?\d?% growth/i,
     /\$\d+ million/i,
