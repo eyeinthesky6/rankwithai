@@ -27,6 +27,7 @@ import { refreshContent } from "@/ai/flows/refresh-content-flow";
 import { checkAndLogRepairBudget } from "@/app/lib/generation-service";
 import { useToast } from "@/hooks/use-toast";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { v4 as uuidv4 } from 'uuid';
 
 export default function PreviewScreen({ project }: { project: any }) {
   const [filter, setFilter] = useState('');
@@ -59,7 +60,7 @@ export default function PreviewScreen({ project }: { project: any }) {
 
     updateDocumentNonBlocking(pageRef, updates);
 
-    toast({ title: "QA Audit Complete", description: `Score: ${result.score}% | Issues: ${result.issues.length}` });
+    toast({ title: "QA Audit Complete", description: `Page scored ${result.score}% with ${result.issues.length} issue(s) found.` });
     if (activePage?.id === page.id) setActivePage({ ...page, ...updates });
   };
 
@@ -86,7 +87,7 @@ export default function PreviewScreen({ project }: { project: any }) {
       // Log deterministic fix activity
       updateDocumentNonBlocking(projectRef, {
         refreshLogs: arrayUnion({
-          id: Math.random().toString(36).substring(7),
+          id: uuidv4(),
           timestamp: new Date().toISOString(),
           pageSlug: page.slug,
           ruleTriggered: 'Structural Audit',
@@ -94,10 +95,10 @@ export default function PreviewScreen({ project }: { project: any }) {
         })
       });
 
-      toast({ title: "Deterministic Fix Applied", description: summary });
+      toast({ title: "Deterministic Fix Applied", description: `Applied fix: ${summary}` });
       if (activePage?.id === page.id) setActivePage(finalPage);
     } catch (e) {
-      toast({ title: "Repair Engine Error", variant: "destructive" });
+      toast({ title: "Repair Engine Error", description: "An unexpected error occurred during the fix.", variant: "destructive" });
     } finally {
       setFixing(null);
     }
@@ -122,7 +123,7 @@ export default function PreviewScreen({ project }: { project: any }) {
       // Log sync activity
       updateDocumentNonBlocking(projectRef, {
         refreshLogs: arrayUnion({
-          id: Math.random().toString(36).substring(7),
+          id: uuidv4(),
           timestamp: new Date().toISOString(),
           pageSlug: page.slug,
           ruleTriggered: 'Identity Hash Mismatch',
@@ -130,10 +131,10 @@ export default function PreviewScreen({ project }: { project: any }) {
         })
       });
 
-      toast({ title: "Strategy Synchronized" });
+      toast({ title: "Strategy Synchronized", description: "The page has been updated with the latest brand memory." });
       if (activePage?.id === page.id) setActivePage({ ...fixedPage, isStale: false });
     } catch (e) {
-      toast({ title: "Sync Failed", variant: "destructive" });
+      toast({ title: "Sync Failed", description: "Could not sync the page with the latest brand memory.", variant: "destructive" });
     } finally {
       setFixing(null);
     }
@@ -189,7 +190,7 @@ export default function PreviewScreen({ project }: { project: any }) {
       // Log AI repair activity
       updateDocumentNonBlocking(projectRef, {
         refreshLogs: arrayUnion({
-          id: Math.random().toString(36).substring(7),
+          id: uuidv4(),
           timestamp: new Date().toISOString(),
           pageSlug: activePage.slug,
           ruleTriggered: 'Manual Optimization',
@@ -197,7 +198,7 @@ export default function PreviewScreen({ project }: { project: any }) {
         })
       });
 
-      toast({ title: "AI Repair Applied" });
+      toast({ title: "AI Repair Applied", description: `Successfully applied AI repair: ${repairAction.type}` });
       setActivePage({ ...activePage, ...updates });
     } catch (e: any) {
       toast({ title: "AI Service Error", description: e.message, variant: "destructive" });
