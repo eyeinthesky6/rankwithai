@@ -97,13 +97,15 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       }
     };
 
-    // Process redirect result and set up auth listener
+    // Process redirect result FIRST, then set up auth listener
+    // This ensures we don't prematurely set isUserLoading: false before OAuth credentials are processed
     const initializeAuth = async () => {
-      // First, wait for any pending redirect result
+      // First, wait for any pending redirect result to complete
+      // This is critical for redirect-based OAuth flows
       await handleRedirect();
       
-      // Get initial auth state BEFORE setting up the listener
-      // This ensures we capture any existing session
+      // Get initial auth state AFTER handling redirect result
+      // This ensures we capture any existing session from the redirect
       const initialUser = auth.currentUser;
       
       // Set up the auth state listener - this will fire whenever auth state changes
@@ -123,9 +125,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         }
       );
       
-      // If there's already a current user (from a previous session), update state
+      // If there's already a current user (from a previous session or redirect), update state
       if (initialUser && isMounted) {
         setUserAuthState({ user: initialUser, isUserLoading: false, userError: null });
+      } else if (isMounted) {
+        // No user found - ensure we set loading to false after both redirect handling
+        // AND initial auth state check are complete
+        setUserAuthState(prev => ({ ...prev, isUserLoading: false }));
       }
       
       return unsubscribe;
